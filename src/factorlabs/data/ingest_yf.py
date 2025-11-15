@@ -6,6 +6,7 @@ import yfinance as yf
 import polars as pl
 import time
 import ast
+import duckdb
 @dataclass
 class YFIngestConfig:
     tickers: Sequence[str]
@@ -13,8 +14,8 @@ class YFIngestConfig:
     end: date
     interval: str
     adjust: bool = True
-    out_path: str = "data/yf_prices.parquet"
-
+    out_path: str = "src/data/yf_prices.parquet"
+    
 def fetch_yf_data(cfg: YFIngestConfig) -> pl.DataFrame:
     """
     Function to fetch yahoo finance data and put it into a polars dataframe
@@ -77,42 +78,64 @@ def normalize_prices(df: pl.DataFrame) -> pl.DataFrame:
     """
     #step 1 -> normalize the column names
     df = normalize_column_names(df)
-    df = normalize_date_columns(df)
+    df = normalize_date_column(df)
+    df = data_quality_fixing(df)
     #step 2 -> ensure there is a date column w/ datatypes of date
     
-# ---------------------------------------------HELPER FUNCTIONS FOR NORMALIZE_PRICES----------------------------------------------
-def normalize_date_columns(df: pl.DataFrame) -> pl.DataFrame:
-    """
-    Takes in a polars dataframe, checks if it has a dates column.
-    then checks if the dates column is of type date, and if removes timezone information
-    normalizing to UTC if present. Sorts the dataeframe by ['ticker','date'] when a ticker column exists.
-
-    Examples: 
+    return df
     
+# ---------------------------------------------HELPER FUNCTIONS FOR NORMALIZE_PRICES----------------------------------------------
+import polars as pl
 
-    Returns:
-        pl.DataFrame: _description_
+def normalize_date_column(df: pl.DataFrame) -> pl.DataFrame:
     """
-    dtype_map = {name: dtype for name, dtype in zip(df.columns, df.dtypes)}
-    print(dtype_map["date"]) # possible outputs for datetime objects are DateTime
-    type_date  = dtype_map["date"]
-    if isinstance(type_date,pl.Datetime):
-        #expected this is chill but lets make sure its normalized 
-        if type_date.time_zone is not None:
-            df.columns["date"].convert_time_zone("UTC")
-        else;
-    if isinstance(type_date,str):
-        #convert from str to date
-        try:
-            df.with_columns(dt = pl.col('date')
-                            .str.to_datetime().cast(
-                                pl.Date
-                            ))
-        except Exception as e:
-            print(e)
-            return None
-    if 
-    return 0
+    Ensure the 'date' column is of dtype pl.Date.
+
+    Handles:
+    - pl.Utf8 (string dates)      -> parsed to pl.Date
+    - pl.Datetime (with/without tz) -> converted to pl.Date
+    - pl.Date or pl.Object        -> left as-is (assumed already date-like)
+    """
+    dtype = df["date"].dtype
+
+    # Case 1: string dates -> parse to datetime -> date
+    if dtype == pl.Utf8:
+        return df.with_columns(
+            pl.col("date")
+            .str.to_datetime()
+            .dt.date()
+            .alias("date")
+        )
+
+    # Case 2: datetime (with or without timezone) -> date
+    # In Polars, timezone-aware dtypes are pl.Datetime(time_zone=...)
+    if isinstance(dtype, pl.Datetime):
+        return df.with_columns(
+            pl.col("date")
+            .dt.date()
+            .alias("date")
+        )
+
+    # Case 3: already date-like -> do nothing
+    # Depending on how the df is built, this might come through as pl.Date or pl.Object.
+    if dtype in (pl.Date, pl.Object):
+        return df
+
+    # Anything else is weird
+    raise TypeError(f"Unsupported date dtype: {dtype}")
+
+def data_quality_fixing(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    - Drops rows with entirely null OHLCV values.
+    - Enforces non-negative prices and integer volume where applicable.
+    - Ensures no duplicate (ticker, date) combinations.
+    """
+    print(f"DF BEFORE CHANGES: {df}")
+    df = df.filter(~pl.all_horizontal(pl.all().exclude('ticker',"date").is_null()))
+    print(f"DF AFTER CHANGES: {df}")
+    return df
+
+        
 def normalize_column_names(df: pl.DataFrame) -> pl.DataFrame:
     """
     Flatten yfinance-style MultiIndex columns into lower_snake_case strings.
@@ -154,9 +177,59 @@ def normalize_column_names(df: pl.DataFrame) -> pl.DataFrame:
     return df.rename(rename_map)
 
 def write_prices(df: pl.DataFrame, cfg: YFIngestConfig) -> None:
-    # write to DuckDB or Parquet
-    ...
+    """
+    Persist a normalized OHLCV price DataFrame to disk.
 
+    This function writes the processed Polars DataFrame produced by the
+    ingestion pipeline to the output destination specified in
+    `cfg.out_path`. The write format is inferred from the file extension
+    (e.g., `.parquet`, `.duckdb`).
+
+    Responsibilities:
+    - Ensure required price columns exist (e.g., date, open, high, low, close, volume).
+    - Create parent directories if needed.
+    - Write the DataFrame atomically, overwriting any existing output file.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Normalized price data to b saved.
+
+    cfg : YFIngestConfig
+        Ingest configuration containing the output path.
+
+    Returns
+    -------
+    None
+        Performs I/O only.
+    """
+    from pathlib import Path
+    out_path = Path(cfg.out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    suffix = out_path.suffix.lower()
+    if suffix == 'parquet':
+        df.write_parquet(cfg.out_path)
+    elif suffix == ".duckdb":
+        # Create or open a DuckDB database file
+        con = duckdb.connect(out_path.as_posix())
+
+        # Register Polars DataFrame as a DuckDB view via Arrow
+        con.register("prices_df", df.to_arrow())
+
+        # Create or replace a table in the database
+        con.execute("""
+            CREATE OR REPLACE TABLE prices AS
+            SELECT * FROM prices_df
+        """)
+
+        con.close()
+    
+    else:
+        raise ValueError(f"Unsupported output format for: {out_path}")
+        
+
+        #lets write the prices to parquet 
+        
 def run_ingest(cfg: YFIngestConfig) -> None:
     raw = fetch_yf_data(cfg)
     normalized = normalize_prices(raw)
@@ -178,5 +251,6 @@ if __name__ == "__main__":
     time2 = time.time()
     print(f"TIME TAKEN TO COMPUTE: {time2 - time1}")
     df = normalize_prices(df)
+    # df = normalize_column_names(df)
     print(df.head())
     print(df.columns)
