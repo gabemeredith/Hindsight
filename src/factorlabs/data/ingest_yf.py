@@ -16,6 +16,19 @@ class YFIngestConfig:
     adjust: bool = True
     out_path: str = "src/data/yf_prices.parquet"
     
+# ========================== PUBLIC PIPELINE ==========================
+
+def run_ingest(cfg: YFIngestConfig) -> None:
+    """
+    Runs the entire ingestion pipeline, which fetchs yf data, normalizes it,
+    and stores it into an external file. Currently supports .duckdb and parquet files
+    """
+    raw = fetch_yf_data(cfg)
+    normalized = normalize_prices(raw)
+    print(normalized)
+    # write_prices(normalized, cfg)
+
+# ========================== STAGE 1: FETCH ========================== 
 def fetch_yf_data(cfg: YFIngestConfig) -> pl.DataFrame:
     """
     Function to fetch yahoo finance data and put it into a polars dataframe
@@ -35,6 +48,8 @@ def fetch_yf_data(cfg: YFIngestConfig) -> pl.DataFrame:
 
     df = pl.from_pandas(data)
     return df
+
+# ========================== STAGE 2: NORMALIZE ==========================
 
 def normalize_prices(df: pl.DataFrame) -> pl.DataFrame:
     # standardize columns, dtypes, timezone, multiindex -> tidy, etc.
@@ -130,9 +145,11 @@ def data_quality_fixing(df: pl.DataFrame) -> pl.DataFrame:
     - Enforces non-negative prices and integer volume where applicable.
     - Ensures no duplicate (ticker, date) combinations.
     """
-    print(f"DF BEFORE CHANGES: {df}")
+    #filter out Null columns
     df = df.filter(~pl.all_horizontal(pl.all().exclude('ticker',"date").is_null()))
-    print(f"DF AFTER CHANGES: {df}")
+    price_cols = df.columns[1:] #careful, df[1:] is the entire df basically, columns just the names
+    df = df.with_columns(
+    pl.col(price_cols).map_elements(lambda x: None if x < 0 else x))
     return df
 
         
@@ -175,6 +192,8 @@ def normalize_column_names(df: pl.DataFrame) -> pl.DataFrame:
         rename_map[col] = new_name
 
     return df.rename(rename_map)
+
+# ========================== STAGE 3: WRITE ==========================
 
 def write_prices(df: pl.DataFrame, cfg: YFIngestConfig) -> None:
     """
@@ -230,27 +249,47 @@ def write_prices(df: pl.DataFrame, cfg: YFIngestConfig) -> None:
 
         #lets write the prices to parquet 
         
-def run_ingest(cfg: YFIngestConfig) -> None:
-    raw = fetch_yf_data(cfg)
-    normalized = normalize_prices(raw)
-    write_prices(normalized, cfg)
+# ========================== SCRIPT ENTRYPOINT ==========================
 
 def main():
+    """
+    This function parses the users arguments, then assigns variables to YFIngestConfig,
+    then runs the pipeline
+    """
     # parse argparse / typer, build YFIngestConfig, call run_ingest
-    ...
-
-if __name__ == "__main__":
+    import argparse
+    from datetime import datetime
+    parser = argparse.ArgumentParser()
+    parser.add_argument("tickers",nargs="+",
+                        help="Tickers, e.g. AAPL MSFT")
+    parser.add_argument("start_date",type=str,
+                        help="first date")
+    parser.add_argument("end_date",type=str,
+                        help="ending date")
+    #lets use a 1d interval as default? or actually 
+    #TODO: have an interval liek 1d - 1w - 1m and the closer amt the user puts round
+    #could be cool idk
+    
+    
+    
+    args = parser.parse_args()
+    
+    start = datetime.strptime(args.start_date, "%Y-%m-%d").date()
+    end   = datetime.strptime(args.end_date, "%Y-%m-%d").date()
+    
     cfg = YFIngestConfig(
-        tickers=["AAPL", "MSFT"],
-        start=date(2024, 1, 1),
-        end=date(2024, 1, 10),
+        tickers=args.tickers,
+        start=start,
+        end = end,
         interval="1d",
     )
-    time1 = time.time()
-    df = fetch_yf_data(cfg)
-    time2 = time.time()
-    print(f"TIME TAKEN TO COMPUTE: {time2 - time1}")
-    df = normalize_prices(df)
-    # df = normalize_column_names(df)
-    print(df.head())
-    print(df.columns)
+    t0 = time.time()
+    run_ingest(cfg)
+    t1 = time.time()
+
+    print(f"Completed ingest in {t1 - t0:.3f}s")
+    print(f"Data written to: {cfg.out_path}")
+
+
+if __name__ == "__main__":
+    main()
