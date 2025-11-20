@@ -26,7 +26,7 @@ def run_ingest(cfg: YFIngestConfig) -> None:
     raw = fetch_yf_data(cfg)
     normalized = normalize_prices(raw)
     print(normalized)
-    # write_prices(normalized, cfg)
+    write_prices(normalized, cfg)
 
 # ========================== STAGE 1: FETCH ========================== 
 def fetch_yf_data(cfg: YFIngestConfig) -> pl.DataFrame:
@@ -226,7 +226,7 @@ def write_prices(df: pl.DataFrame, cfg: YFIngestConfig) -> None:
     out_path = Path(cfg.out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     suffix = out_path.suffix.lower()
-    if suffix == 'parquet':
+    if suffix == '.parquet':
         df.write_parquet(cfg.out_path)
     elif suffix == ".duckdb":
         # Create or open a DuckDB database file
@@ -282,6 +282,7 @@ def main():
         start=start,
         end = end,
         interval="1d",
+        out_path="src/data/yf_prices.parquet",
     )
     t0 = time.time()
     run_ingest(cfg)
