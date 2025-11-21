@@ -95,8 +95,12 @@ def normalize_prices(df: pl.DataFrame) -> pl.DataFrame:
     df = normalize_column_names(df)
     df = normalize_date_column(df)
     df = data_quality_fixing(df)
-    #step 2 -> ensure there is a date column w/ datatypes of date
-    
+    df = wide_to_long(df)
+    #Final Step -> Turn from date       ┆ close_aapl ┆ close_msft ┆ high_aapl  ┆ … ┆ open_aapl ┆ open_msft 
+    # to ['date', 'ticker', 'open', 'high', 'low', 'close', 'adj_close', 'volume'] 
+    #because our current df is really inefficient apprently bc it adds columns not rows
+   
+     
     return df
     
 # ---------------------------------------------HELPER FUNCTIONS FOR NORMALIZE_PRICES----------------------------------------------
@@ -193,6 +197,37 @@ def normalize_column_names(df: pl.DataFrame) -> pl.DataFrame:
 
     return df.rename(rename_map)
 
+def wide_to_long(df: pl.DataFrame):
+    """
+    turns columns from date       ┆ close_aapl ┆ close_msft ┆ high_aapl  ┆ … ┆ open_aapl ┆ open_msft
+    to: Data Ticker Open Close High Low Volume 
+    
+    How? wide df → unpivot → split into field+ticker → pivot by field
+    """
+    df = df.unpivot(
+        index="date",
+        on= df.columns[1:],
+    )
+    df = df.sort("date")
+    df = df.with_columns([
+        pl.col("variable").str.split("_").list.get(0).alias("feature"),
+        pl.col("variable").str.split("_").list.get(1).alias("ticker"),
+    ]
+    ).drop("variable")
+    df = df.select(
+        "date",
+        "ticker",
+        "feature",
+        "value"
+    )
+    df = df.pivot(
+        index=["date","ticker"],
+        on="feature",
+        values="value",
+        aggregate_function="first",
+    )
+
+    return df
 # ========================== STAGE 3: WRITE ==========================
 
 def write_prices(df: pl.DataFrame, cfg: YFIngestConfig) -> None:
