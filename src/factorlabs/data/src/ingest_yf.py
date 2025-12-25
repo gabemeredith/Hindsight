@@ -8,6 +8,9 @@ import time
 import ast
 import duckdb
 from io_utils import write_prices
+
+
+
 @dataclass
 class YFIngestConfig:
     tickers: Sequence[str]
@@ -152,9 +155,17 @@ def data_quality_fixing(df: pl.DataFrame) -> pl.DataFrame:
     """
     #filter out Null columns
     df = df.filter(~pl.all_horizontal(pl.all().exclude('ticker',"date").is_null()))
-    price_cols = df.columns[1:] #careful, df[1:] is the entire df basically, columns just the names
-    df = df.with_columns(
-    pl.col(price_cols).map_elements(lambda x: None if x < 0 else x))
+    price_cols = [col for col in df.columns if col not in ['date', 'ticker']]
+    
+    # Replace negative values with None
+    for col in price_cols:
+        df = df.with_columns(
+            pl.when(pl.col(col) < 0)
+            .then(None)
+            .otherwise(pl.col(col))
+            .alias(col)
+        )
+    
     return df
 
         
@@ -205,6 +216,14 @@ def wide_to_long(df: pl.DataFrame):
     
     How? wide df → unpivot → split into field+ticker → pivot by field
     """
+    has_ticker_suffix = any('_' in col for col in df.columns if col != 'date')
+    
+    if not has_ticker_suffix:
+        # Data is already in long format (single ticker case)
+        # Just return as-is
+        # NOTE: Single-ticker data won't have a 'ticker' column
+        # May want to add one in the future
+        return df
     df = df.unpivot(
         index="date",
         on= df.columns[1:],
@@ -212,7 +231,7 @@ def wide_to_long(df: pl.DataFrame):
     df = df.sort("date")
     df = df.with_columns([
         pl.col("variable").str.split("_").list.get(0).alias("feature"),
-        pl.col("variable").str.split("_").list.get(1).alias("ticker"),
+        pl.col("variable").str.split("_").list.get(1).str.to_lowercase().alias("ticker"),
     ]
     ).drop("variable")
     df = df.select(

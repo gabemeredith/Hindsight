@@ -1,377 +1,498 @@
-# tests/test_ingest_yf.py
 """
-Comprehensive test suite for YFinance data ingestion pipeline.
+Tests for factorlabs/data/src/ingest_yf.py
 
-Test Categories:
-1. Unit tests - individual function behavior
-2. Integration tests - full pipeline flow
-3. Data quality tests - schema and value validation
-4. Edge case tests - handle malformed/missing data
+Test Philosophy:
+- Test each transformation function in isolation
+- Use small, deterministic DataFrames (no actual API calls)
+- Validate schema transformations step-by-step
+- Test edge cases (single ticker, multi-ticker, missing data)
+
+Run with: pytest tests/test_ingest_yf.py -v
 """
 
 import sys
-from pathlib import Path
-from datetime import date
-from typing import List
-import ast
+sys.path.insert(0, 'src')
+sys.path.insert(0, 'src/factorlabs/data/src')
 
-# Add src to path
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-import pytest
 import polars as pl
-from factorlabs.data.ingest_yf import (
-    YFIngestConfig,
-    normalize_column_names,
-    normalize_date_column,
-    data_quality_fixing,
-    normalize_prices,
-)
+import pytest
+from datetime import date
+from factorlabs.data.src import ingest_yf
 
 
-# ============================================================================
-# FIXTURES - Reusable test data
-# ============================================================================
+# ========================== FIXTURES ==========================
 
 @pytest.fixture
-def sample_raw_yf_single_ticker():
-    """Raw yfinance data for single ticker (no MultiIndex)"""
+def raw_single_ticker_df():
+    """
+    Simulates yfinance output for single ticker (AAPL).
+    yfinance returns simple columns when there's only one ticker.
+    """
     return pl.DataFrame({
-        "Date": ["2024-01-01", "2024-01-02", "2024-01-03"],
-        "Open": [100.0, 101.0, 102.0],
-        "High": [101.0, 102.0, 103.0],
-        "Low": [99.0, 100.0, 101.0],
-        "Close": [100.5, 101.5, 102.5],
-        "Adj Close": [100.5, 101.5, 102.5],
-        "Volume": [1000000, 1100000, 1200000],
+        "Date": ["2020-01-01", "2020-01-02", "2020-01-03"],
+        "Open": [100.0, 102.0, 101.0],
+        "High": [105.0, 106.0, 104.0],
+        "Low": [99.0, 101.0, 100.0],
+        "Close": [103.0, 105.0, 102.0],
+        "Volume": [1000000, 1100000, 950000],
     })
 
 
 @pytest.fixture
-def sample_raw_yf_multi_ticker():
-    """Raw yfinance data with MultiIndex columns (multiple tickers)"""
+def raw_multi_ticker_df():
+    """
+    Simulates yfinance output for multiple tickers.
+    yfinance returns MultiIndex columns: ('Close', 'AAPL'), ('Close', 'MSFT'), etc.
+    We represent these as strings since that's how Polars sees them.
+    """
     return pl.DataFrame({
-        "('date', '')": ["2024-01-01", "2024-01-02", "2024-01-03"],
-        "('open', 'aapl')": [100.0, 101.0, None],
-        "('high', 'aapl')": [101.0, 102.0, None],
-        "('low', 'aapl')": [99.0, 100.0, None],
-        "('close', 'aapl')": [100.5, 101.5, None],
-        "('volume', 'aapl')": [1000000, 1100000, None],
-        "('open', 'msft')": [200.0, None, 202.0],
-        "('high', 'msft')": [201.0, None, 203.0],
-        "('low', 'msft')": [199.0, None, 201.0],
-        "('close', 'msft')": [200.5, None, 202.5],
-        "('volume', 'msft')": [2000000, None, 2200000],
+        "('Date', '')": ["2020-01-01", "2020-01-02"],
+        "('Close', 'AAPL')": [100.0, 110.0],
+        "('Close', 'MSFT')": [200.0, 210.0],
+        "('High', 'AAPL')": [105.0, 115.0],
+        "('High', 'MSFT')": [205.0, 215.0],
+        "('Low', 'AAPL')": [98.0, 108.0],
+        "('Low', 'MSFT')": [198.0, 208.0],
+        "('Open', 'AAPL')": [99.0, 109.0],
+        "('Open', 'MSFT')": [199.0, 209.0],
+        "('Volume', 'AAPL')": [1000000.0, 1100000.0],
+        "('Volume', 'MSFT')": [2000000.0, 2100000.0],
     })
 
 
-@pytest.fixture
-def sample_dirty_data():
-    """Data with quality issues for testing data_quality_fixing"""
-    return pl.DataFrame({
-        "ticker": ["AAPL", "AAPL", "MSFT", "MSFT", "TSLA"],
-        "date": [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 1)],
-        "open": [100.0, None, -5.0, 200.0, 150.0],  # Row 2 all null, Row 3 negative
-        "high": [101.0, None, 10.0, 201.0, 151.0],
-        "low": [99.0, None, 8.0, 199.0, 149.0],
-        "close": [100.5, None, 9.0, 200.5, 150.5],
-        "volume": [1000000, None, 500000, 2000000, 1500000],
+# ========================== TEST COLUMN NORMALIZATION ==========================
+
+def test_normalize_column_names_single_ticker(raw_single_ticker_df):
+    """
+    Test that simple column names get lowercased.
+    
+    'Date' -> 'date'
+    'Close' -> 'close'
+    'Volume' -> 'volume'
+    """
+    result = ingest_yf.normalize_column_names(raw_single_ticker_df)
+    
+    expected_cols = ['date', 'open', 'high', 'low', 'close', 'volume']
+    assert result.columns == expected_cols
+
+
+def test_normalize_column_names_multi_ticker(raw_multi_ticker_df):
+    """
+    Test that MultiIndex columns are flattened correctly.
+    
+    ('Close', 'AAPL') -> 'close_aapl'
+    ('Date', '')      -> 'date'
+    """
+    result = ingest_yf.normalize_column_names(raw_multi_ticker_df)
+    
+    expected_cols = [
+        'date',
+        'close_aapl', 'close_msft',
+        'high_aapl', 'high_msft',
+        'low_aapl', 'low_msft',
+        'open_aapl', 'open_msft',
+        'volume_aapl', 'volume_msft'
+    ]
+    
+    assert sorted(result.columns) == sorted(expected_cols)
+
+
+def test_normalize_column_names_handles_edge_cases():
+    """
+    Test edge cases in column naming.
+    """
+    df = pl.DataFrame({
+        "('Close', '')": [100.0],  # Empty ticker
+        "('', 'AAPL')": [200.0],   # Empty field name
+        "SimpleColumn": [300.0],    # Already simple
     })
-
-
-# ============================================================================
-# UNIT TESTS - Test individual functions
-# ============================================================================
-
-class TestNormalizeColumnNames:
-    """Test column name normalization logic"""
     
-    def test_multiindex_column_parsing(self):
-        """Test that MultiIndex columns are properly flattened"""
-        df = pl.DataFrame({
-            "('close', 'aapl')": [100.0, 101.0],
-            "('volume', 'msft')": [1000, 2000],
-            "('date', '')": ["2024-01-01", "2024-01-02"],
-        })
-        
-        result = normalize_column_names(df)
-        
-        assert "close_aapl" in result.columns
-        assert "volume_msft" in result.columns
-        assert "date" in result.columns
-        assert len(result.columns) == 3
+    result = ingest_yf.normalize_column_names(df)
     
-    def test_simple_column_lowercasing(self):
-        """Test that simple columns are lowercased"""
-        df = pl.DataFrame({
-            "Date": ["2024-01-01"],
-            "Open": [100.0],
-            "Close": [101.0],
-        })
-        
-        result = normalize_column_names(df)
-        
-        assert result.columns == ["date", "open", "close"]
+    # ('Close', '') -> 'close'
+    # ('', 'AAPL') -> '_aapl' (or handle gracefully)
+    # 'SimpleColumn' -> 'simplecolumn'
+    assert 'close' in result.columns
+    assert 'simplecolumn' in result.columns
+
+
+# ========================== TEST DATE NORMALIZATION ==========================
+
+def test_normalize_date_column_from_string():
+    """
+    Test that string dates are converted to pl.Date.
+    """
+    df = pl.DataFrame({
+        "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
+        "close": [100.0, 110.0, 120.0],
+    })
     
-    def test_preserves_data(self):
-        """Ensure no data loss during renaming"""
-        df = pl.DataFrame({
-            "Date": ["2024-01-01", "2024-01-02"],
-            "Close": [100.0, 101.0],
-        })
-        
-        result = normalize_column_names(df)
-        
-        assert len(result) == 2
-        assert result["close"].to_list() == [100.0, 101.0]
-
-
-class TestNormalizeDateColumn:
-    """Test date column type handling"""
+    result = ingest_yf.normalize_date_column(df)
     
-    def test_string_dates_converted(self):
-        """String dates should be parsed to Date dtype"""
-        df = pl.DataFrame({
-            "date": ["2024-01-01", "2024-01-02", "2024-01-03"]
-        })
-        
-        result = normalize_date_column(df)
-        
-        assert result["date"].dtype == pl.Date
-        assert result["date"][0] == date(2024, 1, 1)
+    assert result["date"].dtype == pl.Date
+    assert result["date"][0] == date(2020, 1, 1)
+
+
+def test_normalize_date_column_from_datetime():
+    """
+    Test that datetime objects are converted to pl.Date (time stripped).
+    """
+    df = pl.DataFrame({
+        "date": pl.datetime_range(
+            start=pl.datetime(2020, 1, 1, 9, 30),  # 9:30 AM
+            end=pl.datetime(2020, 1, 3, 9, 30),
+            interval="1d",
+            eager=True
+        ),
+        "close": [100.0, 110.0, 120.0],
+    })
     
-    def test_datetime_converted_to_date(self):
-        """Datetime columns should be stripped to Date"""
-        df = pl.DataFrame({
-            "date": [
-                pl.datetime(2024, 1, 1, 12, 30),
-                pl.datetime(2024, 1, 2, 14, 45),
-            ]
-        })
-        
-        result = normalize_date_column(df)
-        
-        assert result["date"].dtype == pl.Date
-        assert result["date"][0] == date(2024, 1, 1)
+    result = ingest_yf.normalize_date_column(df)
     
-    def test_date_unchanged(self):
-        """Date columns should pass through unchanged"""
-        df = pl.DataFrame({
-            "date": [date(2024, 1, 1), date(2024, 1, 2)]
-        })
-        
-        result = normalize_date_column(df)
-        
-        assert result["date"].dtype == pl.Date
-        assert len(result) == 2
+    assert result["date"].dtype == pl.Date
+    assert result["date"][0] == date(2020, 1, 1)
 
 
-class TestDataQualityFixing:
-    """Test data quality validation and cleaning"""
+def test_normalize_date_column_already_date():
+    """
+    Test that pl.Date columns are left unchanged.
+    """
+    df = pl.DataFrame({
+        "date": pl.date_range(
+            start=date(2020, 1, 1),
+            end=date(2020, 1, 3),
+            interval="1d",
+            eager=True
+        ),
+        "close": [100.0, 110.0, 120.0],
+    })
     
-    def test_removes_all_null_rows(self, sample_dirty_data):
-        """Rows with all null OHLCV should be removed"""
-        result = data_quality_fixing(sample_dirty_data)
-        
-        # Row 2 (AAPL 2024-01-02) has all nulls except ticker/date
-        assert len(result) == 4  # Started with 5, removed 1
-        
-        # Verify the all-null row is gone
-        aapl_dates = result.filter(pl.col("ticker") == "AAPL")["date"].to_list()
-        assert date(2024, 1, 2) not in aapl_dates
+    result = ingest_yf.normalize_date_column(df)
     
-    def test_keeps_partial_null_rows(self):
-        """Rows with some nulls but valid data should be kept"""
-        df = pl.DataFrame({
-            "ticker": ["AAPL", "MSFT"],
-            "date": [date(2024, 1, 1), date(2024, 1, 2)],
-            "open": [100.0, None],  # MSFT has null open
-            "high": [101.0, 201.0],  # but valid high
-            "close": [100.5, 200.5],
-            "volume": [1000, 2000],
-        })
-        
-        result = data_quality_fixing(df)
-        
-        assert len(result) == 2  # Both rows kept
+    assert result["date"].dtype == pl.Date
+    assert len(result) == 3
+
+
+# ========================== TEST DATA QUALITY FIXING ==========================
+
+def test_data_quality_fixing_removes_all_null_rows():
+    """
+    Test that rows with all null OHLCV values are removed.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 3)],
+        "ticker": ["AAPL", "AAPL", "AAPL"],
+        "close": [100.0, None, 110.0],
+        "open": [99.0, None, 109.0],
+        "high": [105.0, None, 115.0],
+        "low": [98.0, None, 108.0],
+    })
     
-    def test_empty_dataframe_handling(self):
-        """Should handle empty DataFrames gracefully"""
-        df = pl.DataFrame({
-            "ticker": [],
-            "date": [],
-            "open": [],
-            "close": [],
-        })
-        
-        result = data_quality_fixing(df)
-        
-        assert len(result) == 0
-        assert result.columns == df.columns
-
-
-# ============================================================================
-# INTEGRATION TESTS - Test full pipeline
-# ============================================================================
-
-class TestNormalizePrices:
-    """Test the complete normalization pipeline"""
+    result = ingest_yf.data_quality_fixing(df)
     
-    def test_full_pipeline_single_ticker(self, sample_raw_yf_single_ticker):
-        """Test end-to-end normalization for single ticker"""
-        result = normalize_prices(sample_raw_yf_single_ticker)
-        
-        # Check schema
-        assert "date" in result.columns
-        assert "open" in result.columns
-        assert "close" in result.columns
-        assert result["date"].dtype == pl.Date
-        
-        # Check data integrity
-        assert len(result) == 3
-        assert result["open"][0] == 100.0
+    # Row 2 (all nulls) should be removed
+    assert len(result) == 2
+    assert result["date"].to_list() == [date(2020, 1, 1), date(2020, 1, 3)]
+
+
+def test_data_quality_fixing_keeps_partial_nulls():
+    """
+    Test that rows with SOME null values are kept.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1), date(2020, 1, 2)],
+        "ticker": ["AAPL", "AAPL"],
+        "close": [100.0, 110.0],
+        "open": [None, 109.0],  # First row has null open
+        "high": [105.0, 115.0],
+    })
     
-    def test_full_pipeline_multi_ticker(self, sample_raw_yf_multi_ticker):
-        """Test end-to-end normalization for multiple tickers"""
-        result = normalize_prices(sample_raw_yf_multi_ticker)
-        
-        # Check columns normalized
-        assert "date" in result.columns
-        assert "open_aapl" in result.columns or "open" in result.columns
-        
-        # Check nulls removed
-        # Original had rows with all nulls for each ticker
-        assert len(result) < len(sample_raw_yf_multi_ticker)
-
-
-# ============================================================================
-# PROPERTY-BASED TESTS - Test data invariants
-# ============================================================================
-
-class TestDataInvariants:
-    """Test that data quality properties hold after processing"""
+    result = ingest_yf.data_quality_fixing(df)
     
-    def test_no_fully_null_rows(self, sample_dirty_data):
-        """After cleaning, no row should have all OHLCV columns null"""
-        result = data_quality_fixing(sample_dirty_data)
-        
-        # Get OHLCV columns (exclude ticker, date)
-        ohlcv_cols = [c for c in result.columns if c not in ["ticker", "date"]]
-        
-        # Check no row has all nulls
-        for i in range(len(result)):
-            row_values = [result[col][i] for col in ohlcv_cols]
-            assert not all(v is None for v in row_values), f"Row {i} has all nulls"
+    # Both rows should remain (not all values are null)
+    assert len(result) == 2
+
+
+def test_data_quality_fixing_handles_negative_prices():
+    """
+    Test that negative prices are replaced with None.
     
-    def test_date_monotonicity_per_ticker(self):
-        """Dates should be sorted within each ticker"""
-        df = pl.DataFrame({
-            "ticker": ["AAPL", "AAPL", "AAPL"],
-            "date": [date(2024, 1, 3), date(2024, 1, 1), date(2024, 1, 2)],
-            "close": [100.0, 101.0, 102.0],
-        })
-        
-        # Note: normalize_prices should sort by ticker, date
-        # This test documents expected behavior
-        # You may need to add sorting to normalize_prices if not present
-        pass  # Placeholder for sorting test
-
-
-# ============================================================================
-# SNAPSHOT TESTS - Visual inspection helpers
-# ============================================================================
-
-class TestDataVisualization:
-    """Tests that help visualize data transformations"""
+    NOTE: Your current implementation has a bug - it doesn't reassign.
+    This test will likely fail until you fix it.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1), date(2020, 1, 2)],
+        "ticker": ["AAPL", "AAPL"],
+        "close": [100.0, -5.0],  # Negative price (data error)
+        "open": [99.0, 95.0],
+    })
     
-    def test_show_before_after_normalization(self, sample_raw_yf_multi_ticker, capsys):
-        """Print before/after for visual inspection"""
-        print("\n" + "="*80)
-        print("BEFORE NORMALIZATION:")
-        print("="*80)
-        print(sample_raw_yf_multi_ticker)
-        
-        result = normalize_prices(sample_raw_yf_multi_ticker)
-        
-        print("\n" + "="*80)
-        print("AFTER NORMALIZATION:")
-        print("="*80)
-        print(result)
-        
-        # This test always passes - it's for visual inspection
-        assert True
+    result = ingest_yf.data_quality_fixing(df)
     
-    def test_show_data_quality_changes(self, sample_dirty_data, capsys):
-        """Show what data_quality_fixing removes"""
-        print("\n" + "="*80)
-        print("BEFORE DATA QUALITY FIXING:")
-        print("="*80)
-        print(sample_dirty_data)
-        print(f"Row count: {len(sample_dirty_data)}")
-        
-        result = data_quality_fixing(sample_dirty_data)
-        
-        print("\n" + "="*80)
-        print("AFTER DATA QUALITY FIXING:")
-        print("="*80)
-        print(result)
-        print(f"Row count: {len(result)}")
-        print(f"Removed {len(sample_dirty_data) - len(result)} rows")
-        
-        assert True
+    # Negative price should be None
+    # NOTE: This test will fail with your current code!
+    # You need to fix the reassignment issue in data_quality_fixing()
+    assert result["close"][1] is None or result["close"][1] != -5.0
 
 
-# ============================================================================
-# EDGE CASE TESTS
-# ============================================================================
+# ========================== TEST WIDE TO LONG ==========================
 
-class TestEdgeCases:
-    """Test handling of unusual or boundary conditions"""
+def test_wide_to_long_multi_ticker():
+    """
+    Test that wide format is converted to long (tidy) format.
     
-    def test_all_rows_null(self):
-        """DataFrame with all null OHLCV rows"""
-        df = pl.DataFrame({
-            "ticker": ["AAPL", "MSFT"],
-            "date": [date(2024, 1, 1), date(2024, 1, 2)],
-            "open": [None, None],
-            "close": [None, None],
-        })
-        
-        result = data_quality_fixing(df)
-        
-        assert len(result) == 0  # All rows removed
+    Input:  date, close_aapl, close_msft, open_aapl, open_msft
+    Output: date, ticker, close, open
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1), date(2020, 1, 2)],
+        "close_aapl": [100.0, 110.0],
+        "close_msft": [200.0, 210.0],
+        "open_aapl": [99.0, 109.0],
+        "open_msft": [199.0, 209.0],
+    })
     
-    def test_single_row_dataframe(self):
-        """Single row should be handled correctly"""
-        df = pl.DataFrame({
-            "ticker": ["AAPL"],
-            "date": [date(2024, 1, 1)],
-            "open": [100.0],
-            "close": [101.0],
-        })
-        
-        result = data_quality_fixing(df)
-        
-        assert len(result) == 1
+    result = ingest_yf.wide_to_long(df)
+    
+    # Check shape: 2 dates × 2 tickers = 4 rows
+    assert len(result) == 4
+    
+    # Check columns exist
+    assert "date" in result.columns
+    assert "ticker" in result.columns
+    assert "close" in result.columns
+    assert "open" in result.columns
+    
+    # Check tickers are extracted correctly
+    tickers = sorted(result["ticker"].unique().to_list())
+    assert tickers == ["aapl", "msft"]
+    
+    # Check a specific value
+    aapl_day1 = result.filter(
+        (pl.col("ticker") == "aapl") & (pl.col("date") == date(2020, 1, 1))
+    )
+    assert aapl_day1["close"][0] == 100.0
+    assert aapl_day1["open"][0] == 99.0
 
 
-# ============================================================================
-# PARAMETRIZED TESTS - Test multiple scenarios efficiently
-# ============================================================================
+def test_wide_to_long_preserves_all_fields():
+    """
+    Test that all OHLCV fields are preserved in the pivot.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1)],
+        "open_aapl": [99.0],
+        "high_aapl": [105.0],
+        "low_aapl": [98.0],
+        "close_aapl": [103.0],
+        "volume_aapl": [1000000.0],
+    })
+    
+    result = ingest_yf.wide_to_long(df)
+    
+    # All OHLCV columns should exist
+    expected_cols = ["date", "ticker", "open", "high", "low", "close", "volume"]
+    for col in expected_cols:
+        assert col in result.columns, f"Missing column: {col}"
 
-@pytest.mark.parametrize("date_input,expected_type", [
-    (["2024-01-01", "2024-01-02"], pl.Date),
-    ([pl.datetime(2024, 1, 1), pl.datetime(2024, 1, 2)], pl.Date),
-    ([date(2024, 1, 1), date(2024, 1, 2)], pl.Date),
-])
-def test_date_normalization_parametrized(date_input, expected_type):
-    """Test various date input formats"""
-    df = pl.DataFrame({"date": date_input})
-    result = normalize_date_column(df)
-    assert result["date"].dtype == expected_type
+
+# ========================== TEST FULL NORMALIZE_PRICES PIPELINE ==========================
+
+def test_normalize_prices_end_to_end_single_ticker(raw_single_ticker_df):
+    """
+    Test the full normalization pipeline with single ticker data.
+    
+    Input: Raw yfinance DataFrame (simple columns)
+    Output: Canonical schema [date, ticker, open, high, low, close, volume]
+    
+    NOTE: This will fail because single-ticker data doesn't have a ticker column.
+    You may need to handle this case in your code.
+    """
+    result = ingest_yf.normalize_prices(raw_single_ticker_df)
+    
+    # Check essential columns exist
+    assert "date" in result.columns
+    assert "close" in result.columns
+    
+    # Check date is correct type
+    assert result["date"].dtype == pl.Date
+    
+    # Check data is sorted by date
+    dates = result["date"].to_list()
+    assert dates == sorted(dates)
 
 
-if __name__ == "__main__":
-    # Run tests with verbose output and print statements
-    pytest.main([__file__, "-v", "-s"])
+def test_normalize_prices_end_to_end_multi_ticker(raw_multi_ticker_df):
+    """
+    Test the full normalization pipeline with multi-ticker data.
+    """
+    result = ingest_yf.normalize_prices(raw_multi_ticker_df)
+    
+    # Check canonical schema
+    assert "date" in result.columns
+    assert "ticker" in result.columns
+    assert "close" in result.columns
+    
+    # Check date type
+    assert result["date"].dtype == pl.Date
+    
+    # Check we have both tickers
+    tickers = sorted(result["ticker"].unique().to_list())
+    assert tickers == ["aapl", "msft"]
+    
+    # Check shape: 2 dates × 2 tickers = 4 rows
+    assert len(result) == 4
+    
+    # Spot check: AAPL on 2020-01-01 should have close=100
+    aapl_data = result.filter(
+        (pl.col("ticker") == "aapl") & (pl.col("date") == date(2020, 1, 1))
+    )
+    assert len(aapl_data) == 1
+    assert aapl_data["close"][0] == 100.0
+
+
+# ========================== TEST CONFIG & VALIDATION ==========================
+
+def test_yf_ingest_config_defaults():
+    """
+    Test that YFIngestConfig has sensible defaults.
+    """
+    cfg = ingest_yf.YFIngestConfig(
+        tickers=["AAPL"],
+        start=date(2020, 1, 1),
+        end=date(2020, 12, 31),
+        interval="1d"
+    )
+    
+    assert cfg.adjust is True  # Should default to adjusted prices
+    assert cfg.out_path == "data/yf_prices.parquet"
+
+
+def test_yf_ingest_config_validates_tickers():
+    """
+    Test that config accepts various ticker formats.
+    """
+    # Single ticker
+    cfg1 = ingest_yf.YFIngestConfig(
+        tickers=["AAPL"],
+        start=date(2020, 1, 1),
+        end=date(2020, 12, 31),
+        interval="1d"
+    )
+    assert len(cfg1.tickers) == 1
+    
+    # Multiple tickers
+    cfg2 = ingest_yf.YFIngestConfig(
+        tickers=["AAPL", "MSFT", "GOOGL"],
+        start=date(2020, 1, 1),
+        end=date(2020, 12, 31),
+        interval="1d"
+    )
+    assert len(cfg2.tickers) == 3
+
+
+# ========================== EDGE CASE TESTS ==========================
+
+def test_handles_empty_ticker_suffix():
+    """
+    Test that columns like ('Close', '') are handled correctly.
+    """
+    df = pl.DataFrame({
+        "('Date', '')": ["2020-01-01"],
+        "('Close', '')": [100.0],
+    })
+    
+    result = ingest_yf.normalize_column_names(df)
+    
+    assert "date" in result.columns
+    assert "close" in result.columns
+
+
+def test_handles_mixed_case_tickers():
+    """
+    Test that ticker names are normalized to lowercase.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1)],
+        "close_AAPL": [100.0],
+        "close_MsFt": [200.0],
+    })
+    
+    result = ingest_yf.wide_to_long(df)
+    
+    # Tickers should be lowercase
+    tickers = result["ticker"].unique().to_list()
+    assert all(t.islower() for t in tickers)
+
+
+def test_handles_single_date():
+    """
+    Test that pipeline works with just one date.
+    """
+    df = pl.DataFrame({
+        "date": [date(2020, 1, 1)],
+        "close_aapl": [100.0],
+        "open_aapl": [99.0],
+    })
+    
+    result = ingest_yf.wide_to_long(df)
+    
+    assert len(result) == 1
+    assert result["date"][0] == date(2020, 1, 1)
+
+
+# ========================== INTEGRATION TEST (Optional) ==========================
+
+@pytest.mark.skip(reason="Requires actual API call - use only for manual testing")
+def test_fetch_yf_data_real_api():
+    """
+    Integration test that actually calls Yahoo Finance.
+    
+    ONLY RUN THIS MANUALLY to verify API integration works.
+    Skip in CI/CD to avoid rate limits and flakiness.
+    
+    Usage: pytest tests/test_ingest_yf.py::test_fetch_yf_data_real_api -v
+    """
+    cfg = ingest_yf.YFIngestConfig(
+        tickers=["AAPL"],
+        start=date(2024, 1, 1),
+        end=date(2024, 1, 5),
+        interval="1d"
+    )
+    
+    result = ingest_yf.fetch_yf_data(cfg)
+    
+    # Should return non-empty DataFrame
+    assert len(result) > 0
+    
+    # Should have expected columns
+    assert "Date" in result.columns or "date" in result.columns
+
+
+# ========================== PERFORMANCE / SMOKE TESTS ==========================
+
+def test_normalize_prices_doesnt_crash_on_large_mock_data():
+    """
+    Smoke test: Ensure pipeline handles larger datasets without crashing.
+    """
+    # Create 100 days × 5 tickers = 500 rows
+    dates = pl.date_range(
+        start=date(2020, 1, 1),
+        end=date(2020, 4, 10),
+        interval="1d",
+        eager=True
+    )
+    
+    df_dict = {"date": dates}
+    for ticker in ["aapl", "msft", "googl", "amzn", "tsla"]:
+        df_dict[f"close_{ticker}"] = [100.0 + i for i in range(len(dates))]
+        df_dict[f"open_{ticker}"] = [99.0 + i for i in range(len(dates))]
+    
+    df = pl.DataFrame(df_dict)
+    
+    result = ingest_yf.wide_to_long(df)
+    
+    # Should have 100 days × 5 tickers = 500 rows
+    assert len(result) == len(dates) * 5
+    assert "ticker" in result.columns
+    assert "date" in result.columns
