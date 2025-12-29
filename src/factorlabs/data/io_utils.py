@@ -31,7 +31,7 @@ def get_project_root() -> Path:
     This is used to resolve all dataset paths relative to a stable directory.
     Typically this returns the parent folder containing the 'data/' directory.
    """
-   return Path(__file__).resolve().parents[2]
+   return Path(__file__).resolve().parents[3]
 
 def get_data_root() -> Path:
     """
@@ -46,7 +46,7 @@ def get_data_root() -> Path:
 
    This function ensures the directory exists before returning it.
     """
-    return Path(__file__).resolve().parent / "data"
+    return get_project_root() / "data"
 
 
 
