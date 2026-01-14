@@ -96,8 +96,16 @@ class Backtester:
         current_portfolio = Portfolio(initial_cash=config.initial_cash)
         current_rebalancer = Rebalancer()
         
-        #data
-        list_of_dates = pl.date_range(config.start_date,config.end_date,"1d",eager=True).to_list()
+        #data - only loop through dates that exist in price data (skips weekends/holidays)
+        list_of_dates = (
+            prices
+            .filter(pl.col("date") >= config.start_date)
+            .filter(pl.col("date") <= config.end_date)
+            .select("date")
+            .unique()
+            .sort("date")["date"]
+            .to_list()
+        )
         last_rebalance_date = None
         equity_records = []
         trade_records = []
@@ -209,6 +217,8 @@ class Backtester:
         elif frequency == "daily":
             return True
         elif frequency == "weekly":
+            if last_rebalance_date is None:
+                return True
             if (current_date - last_rebalance_date).days >= 7:
                 return True
         elif frequency == "monthly":
