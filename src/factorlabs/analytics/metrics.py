@@ -63,35 +63,52 @@ def cagr(equity_curve: pl.DataFrame) -> float:
 
 
 
-def max_drawdown(equity_curve: pl.DataFrame) -> float:
+# def max_drawdown(equity_curve: pl.DataFrame) -> float:
+#     """
+#     Calculate maximum drawdown (peak to trough decline).
+
+#     Parameters
+#     ----------
+#     equity_curve : pl.DataFrame
+#         Must contain 'portfolio_value' column.
+
+#     Returns
+#     -------
+#     float
+#         Max drawdown as negative decimal (-0.20 = -20% drawdown)
+
+#     Formula
+#     -------
+#     For each point: (value - running_max) / running_max
+#     Return the minimum (most negative) value.
+#     """
+#     equity_curve = equity_curve.with_columns(
+#         pl.col("portfolio_value").cum_max().alias("running_max")
+#     )
+#     equity_curve =equity_curve.with_columns(
+#          ((pl.col("portfolio_value") - pl.col("running_max")) / pl.col("running_max")).alias("difference")
+#     )
+#     return equity_curve.select(pl.col("difference").min()).item()
+
+def calculate_drawdown_series(equity_curve: pl.DataFrame) -> pl.DataFrame:
     """
-    Calculate maximum drawdown (peak to trough decline).
-
-    Parameters
-    ----------
-    equity_curve : pl.DataFrame
-        Must contain 'portfolio_value' column.
-
-    Returns
-    -------
-    float
-        Max drawdown as negative decimal (-0.20 = -20% drawdown)
-
-    Formula
-    -------
-    For each point: (value - running_max) / running_max
-    Return the minimum (most negative) value.
+    calculates drawdown at each point in time.
+    
+    Returns df with added 'drawdown' column.
     """
     equity_curve = equity_curve.with_columns(
         pl.col("portfolio_value").cum_max().alias("running_max")
     )
     equity_curve =equity_curve.with_columns(
-         ((pl.col("portfolio_value") - pl.col("running_max")) / pl.col("running_max")).alias("difference")
+         ((pl.col("portfolio_value") - pl.col("running_max")) / pl.col("running_max")).alias("drawdown")
     )
-    return equity_curve.select(pl.col("difference").min()).item()
-    
+    return equity_curve 
 
-
+def max_drawdown(equity_curve: pl.DataFrame) -> float:                                                                     
+      """Return the worst (minimum) drawdown."""                                                                             
+      result = calculate_drawdown_series(equity_curve)                                                                       
+      return result["drawdown"].min()    
+  
 def annualized_volatility(returns: pl.Series, trading_days: int = 252) -> float:
     """
     Calculate annualized volatility from daily returns.

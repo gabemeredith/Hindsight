@@ -152,8 +152,6 @@ class MomentumStrategy(Strategy):
         """
         Select top N stocks by momentum, equal-weight them.
 
-        YOUR TASK: Implement the momentum selection logic.
-
         Algorithm:
         1. If factors is None, return {} (can't rank without data)
         2. Filter factors to current_date only
@@ -162,25 +160,8 @@ class MomentumStrategy(Strategy):
         5. Take top N stocks
         6. Equal-weight them: each gets 1/N weight
         7. Return as dict
-
-        Hints:
-        - Use factors.filter(pl.col("date") == current_date) to get today's data
-        - Use .sort(momentum_col, descending=True) to rank by momentum
-        - Use .head(n) to get top N
-        - Equal weight = 1.0 / n where n is number of stocks selected
-        - If n_positions > number of stocks, just use all stocks
-
-        Polars patterns you'll need:
-        - df.filter(pl.col("date") == current_date)
-        - df.sort("column_name", descending=True)
-        - df.head(n)
-        - df.iter_rows(named=True) to loop through rows
-        - len(df) to count rows
         """
-        # TODO: Implement momentum selection
-        #
         # Step 1: Handle missing factors
-        
         if factors is None:
             return {}
         todays_factors = factors.filter(pl.col("date") == current_date)

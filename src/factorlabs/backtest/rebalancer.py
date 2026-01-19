@@ -82,14 +82,6 @@ class Rebalancer:
         >>> trades[0].shares  # Should be 100 (10000 / 100)
         100.0
         """
-        # TODO: Implement this!
-        # Hints:
-        # 1. Get total portfolio value using portfolio.get_total_value(prices)
-        # 2. Loop through target_weights to calculate target shares for each ticker
-        # 3. Loop through portfolio.positions to see what we currently own
-        # 4. Calculate delta and create Trade objects
-        # 5. Separate into sells and buys
-        # 6. Return sells + buys (sells first!)
 
         total_value = current_portfolio.get_total_value(prices)
         trade_buys = []

@@ -62,12 +62,6 @@ def calculate_beta(
     Formula
     -------
     beta = covariance(portfolio, benchmark) / variance(benchmark)
-
-    Hints
-    -----
-    - Polars doesn't have built-in covariance, but you can compute it:
-      cov(X, Y) = mean((X - mean(X)) * (Y - mean(Y)))
-    - Or convert to Python lists/numpy and use standard formulas
     """
     n = len(portfolio_returns)
     covariance = ((portfolio_returns - portfolio_returns.mean()) * (benchmark_returns - benchmark_returns.mean())).sum() / (n - 1)

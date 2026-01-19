@@ -205,11 +205,6 @@ class Backtester:
         - "weekly": True if 7+ days since last rebalance
         - "monthly": True if different month than last rebalance
         """
-        # TODO: Implement this helper method
-        # For now, you can start simple:
-        # - "daily" → return True
-        # - "never" → return True only if last_rebalance_date is None
-        # - "weekly" and "monthly" → implement later if needed
         if frequency == "never":
             #unless sfirst day
             if last_rebalance_date == None:

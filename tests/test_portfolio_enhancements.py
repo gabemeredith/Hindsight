@@ -59,7 +59,7 @@ def test_unrealized_pnl_single_position_loss():
     current_prices = {"AAPL": 140.0}
     unrealized = portfolio.get_unrealized_pnl(current_prices)
 
-    # TODO: Replace ??? with your hand-calculated value
+
     assert unrealized == -1000
 
 
@@ -87,7 +87,7 @@ def test_unrealized_pnl_multiple_positions():
     current_prices = {"AAPL": 160.0, "MSFT": 190.0}
     unrealized = portfolio.get_unrealized_pnl(current_prices)
 
-    # TODO: Replace ??? with your hand-calculated value
+
     assert unrealized == 500
 
 
@@ -106,7 +106,7 @@ def test_unrealized_pnl_no_positions():
     current_prices = {}
     unrealized = portfolio.get_unrealized_pnl(current_prices)
 
-    # TODO: Replace ??? with your hand-calculated value
+
     assert unrealized == 0
 
 
@@ -135,7 +135,7 @@ def test_unrealized_pnl_after_averaging_up():
     current_prices = {"AAPL": 170.0}
     unrealized = portfolio.get_unrealized_pnl(current_prices)
 
-    # TODO: Replace ??? with your hand-calculated value
+
     assert unrealized == 3000
 
 
@@ -147,13 +147,6 @@ def test_unrealized_pnl_missing_price():
     When: Price data doesn't include AAPL
     Then: Unrealized P&L = ???
 
-    Hint: If we don't have a price, we can't calculate P&L.
-    What's a reasonable default? Should we:
-    - Assume price = 0? (P&L = -cost_basis)
-    - Skip the position? (P&L = 0 for that position)
-    - Raise an error?
-
-    YOUR DECISION: Choose the most sensible behavior.
     """
     portfolio = Portfolio(initial_cash=100000.0)
     portfolio.buy("AAPL", 100.0, 150.0, date(2020, 1, 1))
@@ -203,7 +196,7 @@ def test_realized_pnl_after_profitable_sale():
 
     realized = portfolio.get_realized_pnl()
 
-    # TODO: Fill in the expected value
+
     assert realized == 1000
 
 
@@ -226,7 +219,7 @@ def test_realized_pnl_after_loss_sale():
 
     realized = portfolio.get_realized_pnl()
 
-    # TODO: Fill in the expected value (negative number!)
+
     assert realized == -1000
 
 
@@ -256,7 +249,7 @@ def test_realized_pnl_accumulates_across_trades():
 
     realized = portfolio.get_realized_pnl()
 
-    # TODO: Fill in the expected value
+
     assert realized == 750
 
 
@@ -286,7 +279,7 @@ def test_realized_pnl_with_averaging():
 
     realized = portfolio.get_realized_pnl()
 
-    # TODO: Fill in the expected value
+
     assert realized == 3000
 
 
@@ -313,7 +306,7 @@ def test_realized_vs_unrealized_pnl():
     realized = portfolio.get_realized_pnl()
     unrealized = portfolio.get_unrealized_pnl(current_prices)
 
-    # TODO: Fill in both expected values
+
     assert realized == 1000  # From the 100 shares sold
     assert unrealized == 2000  # From the 100 shares still held
 
@@ -337,7 +330,7 @@ def test_holdings_value_single_position():
     current_prices = {"AAPL": 160.0}
     holdings = portfolio.get_holdings_value(current_prices)
 
-    # TODO: Fill in the expected value
+
     assert holdings == {"AAPL": 16000}
 
 
@@ -362,7 +355,7 @@ def test_holdings_value_multiple_positions():
     current_prices = {"AAPL": 160.0, "MSFT": 190.0}
     holdings = portfolio.get_holdings_value(current_prices)
 
-    # TODO: Fill in both expected values
+
     assert holdings == {"AAPL": 16000, "MSFT": 9500}
 
 
@@ -381,7 +374,7 @@ def test_holdings_value_no_positions():
     current_prices = {}
     holdings = portfolio.get_holdings_value(current_prices)
 
-    # TODO: Fill in the expected value
+
     assert holdings == {}
 
 
@@ -403,5 +396,4 @@ def test_holdings_value_missing_price():
     current_prices = {}  # No AAPL price!
     holdings = portfolio.get_holdings_value(current_prices)
 
-    # TODO: Make a choice and fill in
     assert holdings == {} #empty, I dont wanna skew the calculations too drastically 
