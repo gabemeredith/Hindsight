@@ -133,13 +133,22 @@ class MomentumStrategy(Strategy):
     {"GOOGL": 0.5, "AAPL": 0.5}  # Equal weight top 2
     """
 
-    def __init__(self, n_positions: int = 3, momentum_col: str = "mom_10d"):
+    def __init__(self, n_positions: int = 3, momentum_col: str = "mom_10d", max_allocation: float = 0.97):
         """
         Initialize momentum strategy.
 
+        Parameters
+        ----------
+        n_positions : int
+            Number of top momentum stocks to hold
+        momentum_col : str
+            Column name for momentum factor
+        max_allocation : float
+            Maximum portfolio allocation (default 0.97 = 97%, leaves 3% buffer for costs)
         """
         self.n_positions = n_positions
         self.momentum_col = momentum_col
+        self.max_allocation = max_allocation
 
 
     def get_target_weights(
@@ -173,8 +182,8 @@ class MomentumStrategy(Strategy):
         
         tickers = todays_factors.sort(
         by=self.momentum_col,descending=True).head(n_to_select)
-        # Step 6: Calculate equal weight
-        weight = 1.0 / n_to_select
+        # Step 6: Calculate equal weight (using max_allocation to leave buffer for costs)
+        weight = self.max_allocation / n_to_select
         # Step 7: Build and return weights dict
         weights = {}
         for row in tickers.iter_rows(named=True):

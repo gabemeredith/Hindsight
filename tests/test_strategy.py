@@ -229,7 +229,7 @@ class TestMomentumStrategy:
         - Equal weight each: 1/2 = 0.5
 
         """
-        strategy = MomentumStrategy(n_positions=2)
+        strategy = MomentumStrategy(n_positions=2, max_allocation=1.0)
 
         weights = strategy.get_target_weights(
             current_date=date(2020, 1, 15),
@@ -239,12 +239,12 @@ class TestMomentumStrategy:
         )
 
         # selected tickers
-        assert "GOOGL" in weights  
-        assert "AAPL" in weights   
-        assert "MSFT" not in weights 
+        assert "GOOGL" in weights
+        assert "AAPL" in weights
+        assert "MSFT" not in weights
 
-       
-        assert weights["GOOGL"] == .5  
+
+        assert weights["GOOGL"] == .5
         assert weights["AAPL"] == .5   
 
     def test_momentum_selects_top_1(self, empty_portfolio, simple_prices, factors_single_day):
@@ -258,7 +258,7 @@ class TestMomentumStrategy:
         - Only GOOGL selected
         - Weight = 1.0 (100% in one stock)
         """
-        strategy = MomentumStrategy(n_positions=1)
+        strategy = MomentumStrategy(n_positions=1, max_allocation=1.0)
 
         weights = strategy.get_target_weights(
             current_date=date(2020, 1, 15),
@@ -268,7 +268,7 @@ class TestMomentumStrategy:
         )
 
         assert len(weights) == 1
-        assert "GOOGL" in weights   
+        assert "GOOGL" in weights
         assert weights["GOOGL"] == 1.0
 
     def test_momentum_selects_all_when_n_exceeds_universe(
@@ -285,7 +285,7 @@ class TestMomentumStrategy:
         - All 3 stocks selected
         - Equal weight: 1/3 each
         """
-        strategy = MomentumStrategy(n_positions=5)  # More than 3 stocks available
+        strategy = MomentumStrategy(n_positions=5, max_allocation=1.0)  # More than 3 stocks available
 
         weights = strategy.get_target_weights(
             current_date=date(2020, 1, 15),
@@ -294,10 +294,10 @@ class TestMomentumStrategy:
             factors=factors_single_day,
         )
 
-        assert len(weights) == 3 
+        assert len(weights) == 3
 
         # Each should have equal weight
-        expected_weight = 0.3333333333333333
+        expected_weight = 1.0 / 3
         assert weights["AAPL"] == pytest.approx(expected_weight)
         assert weights["MSFT"] == pytest.approx(expected_weight)
         assert weights["GOOGL"] == pytest.approx(expected_weight)

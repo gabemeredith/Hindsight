@@ -323,7 +323,7 @@ strategy = MomentumStrategy(n_positions=3)
 
 ```bash
 # Clone
-git clone https://github.com/gabemertedith/FactorLab.git
+git clone https://github.com/gabemeredith/FactorLab.git
 cd FactorLab
 
 # Install (editable mode)
