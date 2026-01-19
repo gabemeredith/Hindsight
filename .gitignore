@@ -4,8 +4,14 @@ __pycache__/
 .env
 .DS_Store
 
+# Data files
 data/raw/
 data/cache/
+data/*.parquet
+
+# Output files
+results/
+charts/
 runs/
 
 onboarding.md
