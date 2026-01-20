@@ -8,7 +8,7 @@ No black-box libraries. No hidden magic. Every trade, every calculation, fully a
 [![Python](https://img.shields.io/badge/python-3.11+-blue)]()
 [![Polars](https://img.shields.io/badge/polars-1.34+-orange)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-🌐 **[Try the Live Demo](https://hindsight.streamlit.app)
+🌐 **[Try the Live Demo](https://hindsightpy.streamlit.app)
 
 ---
 
