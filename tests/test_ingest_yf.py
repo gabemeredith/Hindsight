@@ -214,10 +214,10 @@ def test_data_quality_fixing_keeps_partial_nulls():
 
 def test_data_quality_fixing_handles_negative_prices():
     """
-    Test that negative prices are replaced with None.
-    
-    NOTE: Your current implementation has a bug - it doesn't reassign.
-    This test will likely fail until you fix it.
+    Test that rows with negative close prices are removed.
+
+    Negative prices are first replaced with None, then rows with null
+    close prices are filtered out (required for backtesting).
     """
     df = pl.DataFrame({
         "date": [date(2020, 1, 1), date(2020, 1, 2)],
@@ -225,13 +225,12 @@ def test_data_quality_fixing_handles_negative_prices():
         "close": [100.0, -5.0],  # Negative price (data error)
         "open": [99.0, 95.0],
     })
-    
+
     result = ingest_yf.data_quality_fixing(df)
-    
-    # Negative price should be None
-    # NOTE: This test will fail with your current code!
-    # You need to fix the reassignment issue in data_quality_fixing()
-    assert result["close"][1] is None or result["close"][1] != -5.0
+
+    # Row with negative close price should be removed entirely
+    assert len(result) == 1
+    assert result["close"][0] == 100.0
 
 
 # ========================== TEST WIDE TO LONG ==========================

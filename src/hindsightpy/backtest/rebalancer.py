@@ -87,8 +87,14 @@ class Rebalancer:
         trade_buys = []
         trade_sells = []
         for ticker,weight in target_weights.items():
+            price = prices.get(ticker)
+            if price is None:
+                raise ValueError(
+                    f"No price available for ticker '{ticker}' on {trade_date}. "
+                    f"Available tickers: {list(prices.keys())}"
+                )
             target_value = weight * total_value
-            target_shares = target_value / prices[ticker]
+            target_shares = target_value / price
             current_shares = current_portfolio.positions.get(ticker)
             if current_shares is not None:
                 current_shares = current_shares.shares
@@ -96,17 +102,23 @@ class Rebalancer:
                 current_shares = 0
             delta = target_shares - current_shares
             if delta > 0: #buy
-                trade = Trade(ticker=ticker,shares=delta,price=prices[ticker],
+                trade = Trade(ticker=ticker,shares=delta,price=price,
                               side="buy",date=trade_date)
                 trade_buys.append(trade)
             elif delta < 0: #sell
-                trade = Trade(ticker=ticker,shares=abs(delta),price=prices[ticker],
+                trade = Trade(ticker=ticker,shares=abs(delta),price=price,
                               side="sell",date=trade_date)
                 trade_sells.append(trade)
         for ticker in current_portfolio.positions.keys():
             if ticker not in target_weights:
+                price = prices.get(ticker)
+                if price is None:
+                    raise ValueError(
+                        f"No price available to sell position in '{ticker}' on {trade_date}. "
+                        f"Available tickers: {list(prices.keys())}"
+                    )
                 shares_to_sell = current_portfolio.positions[ticker].shares
-                trade = Trade(ticker=ticker,shares=shares_to_sell,price=prices[ticker],
+                trade = Trade(ticker=ticker,shares=shares_to_sell,price=price,
                               side="sell",date=trade_date)
                 trade_sells.append(trade)
         return trade_sells + trade_buys

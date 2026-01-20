@@ -152,13 +152,15 @@ def normalize_date_column(df: pl.DataFrame) -> pl.DataFrame:
 def data_quality_fixing(df: pl.DataFrame) -> pl.DataFrame:
     """
     - Drops rows with entirely null OHLCV values.
+    - Drops rows with null close prices (required for backtesting).
     - Enforces non-negative prices and integer volume where applicable.
     - Ensures no duplicate (ticker, date) combinations.
     """
     #filter out Null columns
     df = df.filter(~pl.all_horizontal(pl.all().exclude('ticker',"date").is_null()))
+
     price_cols = [col for col in df.columns if col not in ['date', 'ticker']]
-    
+
     # Replace negative values with None
     for col in price_cols:
         df = df.with_columns(
@@ -167,7 +169,12 @@ def data_quality_fixing(df: pl.DataFrame) -> pl.DataFrame:
             .otherwise(pl.col(col))
             .alias(col)
         )
-    
+
+    # Drop rows with null close prices - required for backtesting
+    close_cols = [col for col in df.columns if col == 'close' or col.startswith('close_')]
+    if close_cols:
+        df = df.filter(~pl.any_horizontal([pl.col(c).is_null() for c in close_cols]))
+
     return df
 
         
