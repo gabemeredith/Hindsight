@@ -25,7 +25,6 @@ No black-box libraries. No hidden magic. Every trade, every calculation, fully a
 <!-- ![Dashboard Screenshot](assets/dashboard.png) -->
 <!-- ![Backtest Demo](assets/demo.gif) -->
 
-> **📸 To add screenshots:** Take screenshots of your Streamlit app and save them to an `assets/` folder, then uncomment the lines above.
 
 **[→ Try the Live Demo](https://hindsightpy.streamlit.app)**
 
