@@ -324,7 +324,7 @@ strategy = MomentumStrategy(n_positions=3)
 
 ```bash
 # Clone
-git clone https://github.com/gabemeredith/Hindsight.py.git
+git clone https://github.com/gabemeredith/Hindsight.git
 cd Hindsight.py
 
 # Install (editable mode)
