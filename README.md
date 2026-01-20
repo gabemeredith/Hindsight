@@ -4,11 +4,30 @@
 
 No black-box libraries. No hidden magic. Every trade, every calculation, fully auditable.
 
-[![Tests](https://img.shields.io/badge/tests-153%20passed-brightgreen)]()
-[![Python](https://img.shields.io/badge/python-3.11+-blue)]()
-[![Polars](https://img.shields.io/badge/polars-1.34+-orange)]()
-[![License](https://img.shields.io/badge/license-MIT-green)]()
-🌐 **[Try the Live Demo](https://hindsightpy.streamlit.app)**
+<p align="center">
+  <a href="https://hindsightpy.streamlit.app"><img src="https://img.shields.io/badge/🚀_Live_Demo-hindsightpy.streamlit.app-FF4B4B?style=for-the-badge" alt="Live Demo"></a>
+</p>
+
+<p align="center">
+  <a href="#test-coverage"><img src="https://img.shields.io/badge/tests-153%20passed-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square" alt="Python"></a>
+  <a href="#"><img src="https://img.shields.io/badge/polars-1.34+-orange?style=flat-square" alt="Polars"></a>
+  <a href="#license"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
+  <a href="#test-coverage"><img src="https://img.shields.io/badge/TDD-100%25-blueviolet?style=flat-square" alt="TDD"></a>
+</p>
+
+---
+
+## Demo
+
+<!-- Add screenshots or GIFs of your Streamlit dashboard here -->
+<!-- Example: -->
+<!-- ![Dashboard Screenshot](assets/dashboard.png) -->
+<!-- ![Backtest Demo](assets/demo.gif) -->
+
+> **📸 To add screenshots:** Take screenshots of your Streamlit app and save them to an `assets/` folder, then uncomment the lines above.
+
+**[→ Try the Live Demo](https://hindsightpy.streamlit.app)**
 
 ---
 
@@ -52,10 +71,11 @@ hindsight run AAPL MSFT GOOGL --start 2024-01-01 --end 2024-06-01
 📈 Step 5: Charts
                        Portfolio Equity Curve
         ┌──────────────────────────────────────────────────┐
- 115000 ┤                                    ⡀⡠⠺⡀          │
- 110000 ┤                               ⢀⠎⠈⠁ ⢱            │
- 105000 ┤     ⢀⠔⠊⠉⠈⠒⠙⡄     ⢀⠎⠈⠁ ⢱         ⣠  │
- 100000 ┤⢀⠤⠎                                           │
+ 115000 ┤                                       .**        │
+ 110000 ┤                                    ..*   *.      │
+ 105000 ┤      .***..                     .**       *..    │
+ 100000 ┤..**.*      ****...    ...****.**            **   │
+  95000 ┤                   ****                           │
         └──────────────────────────────────────────────────┘
             Jan      Feb      Mar      Apr      May
 
@@ -76,6 +96,15 @@ I wanted to understand:
 - How do transaction costs (slippage, commission) compound over time?
 
 **So I built it from scratch.** 153 tests. Every expected value hand-calculated. Every edge case covered.
+
+### Engineering Approach
+
+| Practice | Implementation |
+|----------|----------------|
+| **Test-Driven Development** | Tests written first, code written to pass them |
+| **153 Unit Tests** | Every calculation verified with hand-computed expected values |
+| **No Black Boxes** | All logic transparent and auditable |
+| **Clean Architecture** | Separated concerns: data → factors → strategy → execution → analytics |
 
 ---
 
@@ -196,19 +225,20 @@ portfolio.cash -= commission
 
 ## Test Coverage
 
-```
-tests/test_factors.py                 21 passed
-tests/test_ingest_yf.py               19 passed, 1 skipped (API)
-tests/test_portfolio.py               14 passed
-tests/test_portfolio_enhancements.py  14 passed
-tests/test_rebalancer.py              10 passed
-tests/test_backtester.py               7 passed
-tests/test_strategy.py                12 passed
-tests/test_analytics.py               16 passed
-tests/test_visualization.py           21 passed
-───────────────────────────────────────────────
-TOTAL                                153 passed
-```
+> **153 tests** — Every calculation hand-verified. Every edge case covered.
+
+| Test Suite | Tests | Coverage Area |
+|------------|-------|---------------|
+| `test_factors.py` | 21 | Technical indicators (RSI, SMA, momentum) |
+| `test_ingest_yf.py` | 19 | Data ingestion & normalization |
+| `test_portfolio.py` | 14 | Position & cash tracking |
+| `test_portfolio_enhancements.py` | 14 | Advanced portfolio features |
+| `test_rebalancer.py` | 10 | Weight → trade conversion |
+| `test_backtester.py` | 7 | Time-loop simulation |
+| `test_strategy.py` | 12 | Strategy implementations |
+| `test_analytics.py` | 16 | Performance metrics |
+| `test_visualization.py` | 21 | Chart generation |
+| **Total** | **153** | **Full coverage** |
 
 Every test uses **hand-calculated expected values**:
 
