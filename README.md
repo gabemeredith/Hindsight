@@ -1,4 +1,4 @@
-# FactorLab
+# Hindsight.py
 
 **A from-scratch quantitative backtesting engine built with test-driven development.**
 
@@ -8,7 +8,7 @@ No black-box libraries. No hidden magic. Every trade, every calculation, fully a
 [![Python](https://img.shields.io/badge/python-3.11+-blue)]()
 [![Polars](https://img.shields.io/badge/polars-1.34+-orange)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-🌐 **[Try the Live Demo](https://factorlab.streamlit.app)
+🌐 **[Try the Live Demo](https://hindsight.streamlit.app)
 
 ---
 
@@ -19,13 +19,13 @@ No black-box libraries. No hidden magic. Every trade, every calculation, fully a
 pip install -e .
 
 # Run a backtest (one command does everything)
-factorlab run AAPL MSFT GOOGL --start 2024-01-01 --end 2024-06-01
+hindsight run AAPL MSFT GOOGL --start 2024-01-01 --end 2024-06-01
 ```
 
 **Output:**
 ```
 ==================================================
-  FactorLab - Running Complete Backtest Pipeline
+  Hindsight.py - Running Complete Backtest Pipeline
 ==================================================
 
 📥 Step 1: Downloading price data...
@@ -83,7 +83,7 @@ I wanted to understand:
 
 | Feature | Description |
 |---------|-------------|
-| **CLI Interface** | One command runs entire pipeline: `factorlab run AAPL MSFT` |
+| **CLI Interface** | One command runs entire pipeline: `hindsight run AAPL MSFT` |
 | **Terminal Charts** | ASCII charts display directly in terminal (no GUI needed) |
 | **Transaction Costs** | Realistic slippage (0.1%) and commission modeling |
 | **Multiple Strategies** | Static weights, momentum ranking, extensible interface |
@@ -138,19 +138,19 @@ I wanted to understand:
 
 ```bash
 # Simple - one command does everything
-factorlab run AAPL MSFT GOOGL
+hindsight run AAPL MSFT GOOGL
 
 # With options
-factorlab run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
+hindsight run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
 
 # Save PNG charts
-factorlab run AAPL MSFT GOOGL --save-charts
+hindsight run AAPL MSFT GOOGL --save-charts
 
 # Advanced - individual commands
-factorlab ingest AAPL MSFT --start 2024-01-01 --end 2024-12-31
-factorlab backtest data/prices.parquet --strategy static --weights "aapl:0.5,msft:0.5"
-factorlab metrics results/equity_curve.parquet
-factorlab plot equity results/equity_curve.parquet --output chart.png
+hindsight ingest AAPL MSFT --start 2024-01-01 --end 2024-12-31
+hindsight backtest data/prices.parquet --strategy static --weights "aapl:0.5,msft:0.5"
+hindsight metrics results/equity_curve.parquet
+hindsight plot equity results/equity_curve.parquet --output chart.png
 ```
 
 ---
@@ -228,8 +228,8 @@ def test_sharpe_ratio_basic():
 ## Project Structure
 
 ```
-FactorLab/
-├── src/factorlabs/
+Hindsight.py/
+├── src/hindsights/
 │   ├── data/
 │   │   └── ingest_yf.py        # Yahoo Finance → normalized DataFrame
 │   ├── financialfeatures/
@@ -304,7 +304,7 @@ strategy = MomentumStrategy(n_positions=3)
 
 4. **Polars > Pandas for this use case.** Native multi-column operations with `.over()`, better type safety, 10x faster.
 
-5. **CLI UX matters.** Nobody wants to write 4 commands. `factorlab run AAPL MSFT` is the right abstraction.
+5. **CLI UX matters.** Nobody wants to write 4 commands. `hindsight run AAPL MSFT` is the right abstraction.
 
 ---
 
@@ -324,14 +324,14 @@ strategy = MomentumStrategy(n_positions=3)
 
 ```bash
 # Clone
-git clone https://github.com/gabemeredith/FactorLab.git
-cd FactorLab
+git clone https://github.com/gabemeredith/Hindsight.py.git
+cd Hindsight.py
 
 # Install (editable mode)
 pip install -e .
 
 # Verify
-factorlab --help
+hindsight --help
 pytest tests/ -v
 ```
 

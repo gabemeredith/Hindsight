@@ -1,0 +1,1 @@
+"""Hindsight.py CLI - Command line interface for the backtesting engine."""

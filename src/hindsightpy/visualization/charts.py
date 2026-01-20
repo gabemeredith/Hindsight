@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
-from factorlabs.analytics.metrics import calculate_drawdown_series                                                         
+from hindsightpy.analytics.metrics import calculate_drawdown_series                                                         
 
 def plot_equity_curve(
     equity_curve: pl.DataFrame,

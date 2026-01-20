@@ -10,8 +10,8 @@ import pytest
 import polars as pl
 from datetime import date
 
-from factorlabs.backtest.backtester import Backtester, BacktestConfig
-from factorlabs.backtest.portfolio import Portfolio
+from hindsightpy.backtest.backtester import Backtester, BacktestConfig
+from hindsightpy.backtest.portfolio import Portfolio
 
 
 @pytest.fixture

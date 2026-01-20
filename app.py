@@ -1,5 +1,5 @@
 """
-FactorLab Streamlit Dashboard
+Hindsight.py Streamlit Dashboard
 
 Run with: streamlit run app.py
 
@@ -18,7 +18,7 @@ from datetime import date, timedelta
 # PAGE CONFIG - Must be first Streamlit command
 # ============================================================
 st.set_page_config(
-    page_title="FactorLab",
+    page_title="Hindsight.py",
     page_icon="📈",
     layout="wide"  # Use full screen width
 )
@@ -26,15 +26,15 @@ st.set_page_config(
 # ============================================================
 # IMPORTS - Your existing code
 # ============================================================
-from factorlabs.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
-from factorlabs.backtest.backtester import BacktestConfig, Backtester
-from factorlabs.backtest.strategy import StaticWeightStrategy, MomentumStrategy
-from factorlabs.financialfeatures.factors import calculate_momentum, calculate_returns
-from factorlabs.analytics.metrics import (
+from hindsightpy.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
+from hindsightpy.backtest.backtester import BacktestConfig, Backtester
+from hindsightpy.backtest.strategy import StaticWeightStrategy, MomentumStrategy
+from hindsightpy.financialfeatures.factors import calculate_momentum, calculate_returns
+from hindsightpy.analytics.metrics import (
     total_return, cagr, max_drawdown, sharpe_ratio,
     sortino_ratio, annualized_volatility
 )
-from factorlabs.analytics.benchmark import compare_to_benchmark
+from hindsightpy.analytics.benchmark import compare_to_benchmark
 
 
 # ============================================================
@@ -82,7 +82,7 @@ def fetch_benchmark_data(ticker: str, start: date, end: date) -> pl.DataFrame:
 # Sidebar is good for inputs because it stays visible while
 # the main area shows results
 
-st.sidebar.title("FactorLab")
+st.sidebar.title("Hindsight.py")
 st.sidebar.markdown("*Backtest your portfolio strategies*")
 
 # Multiselect with predefined options - searchable dropdown
@@ -127,16 +127,23 @@ custom_tickers = [t.strip().upper() for t in custom_tickers_input.split(",") if 
 tickers = list(dict.fromkeys(selected_tickers + custom_tickers))  # Preserves order, removes dupes
 
 # Date inputs - Streamlit has built-in date picker
+# Limit to current date (can't backtest the future!)
+today = date.today()
+
 col1, col2 = st.sidebar.columns(2)  # Two columns side by side
 with col1:
     start_date = st.date_input(
         "Start Date",
-        value=date(2024, 1, 1)
+        value=date(2024, 1, 1),
+        min_value=date(2000, 1, 1),
+        max_value=today
     )
 with col2:
     end_date = st.date_input(
         "End Date",
-        value=date(2024, 12, 31)
+        value=min(date(2024, 12, 31), today),  # Don't default to future date
+        min_value=date(2000, 1, 1),
+        max_value=today
     )
 
 # Selectbox for strategy - returns the selected string
@@ -198,7 +205,7 @@ st.sidebar.caption(
 # MAIN AREA - Results
 # ============================================================
 
-st.title("📈 FactorLab Dashboard")
+st.title("📈 Hindsight.py Dashboard")
 
 # Show current configuration
 st.markdown(f"**Tickers:** {', '.join(tickers)} | **Strategy:** {strategy_type}")
@@ -414,7 +421,7 @@ else:
     # You can add example content or documentation here
     st.markdown("""
     ### How to use
-    1. Enter stock tickers (comma-separated)
+    1. Select stock tickers from the dropdown (or add custom ones)
     2. Select date range
     3. Choose a strategy
     4. Optionally select a benchmark for comparison
@@ -424,6 +431,101 @@ else:
     - **Static (Equal Weight)**: Divide your portfolio equally among all tickers, rebalance monthly
     - **Momentum**: Hold the top N stocks by recent performance, rebalance monthly
     """)
+
+    # ============================================================
+    # EDUCATIONAL CONTENT - What is Backtesting?
+    # ============================================================
+    with st.expander("What is Backtesting?"):
+        st.markdown("""
+        **Backtesting** is the process of testing a trading strategy on historical data
+        to see how it *would have* performed in the past.
+
+        #### Why is it important?
+
+        Before risking real money, investors and traders want to answer questions like:
+        - Would this strategy have made money over the last 5 years?
+        - How much could I have lost during a market crash?
+        - Does this strategy beat simply buying an index fund?
+
+        Backtesting lets you simulate thousands of trades instantly, using real historical
+        prices, to get answers before committing capital.
+
+        #### Key Metrics Explained
+
+        | Metric | What it measures |
+        |--------|------------------|
+        | **Total Return** | How much your portfolio grew (or shrank) over the entire period |
+        | **CAGR** | Compound Annual Growth Rate — your average yearly return, accounting for compounding |
+        | **Sharpe Ratio** | Risk-adjusted return. Higher = better return per unit of risk. Above 1.0 is decent, above 2.0 is strong |
+        | **Sortino Ratio** | Like Sharpe, but only penalizes *downside* volatility (losing money), not upside |
+        | **Max Drawdown** | The worst peak-to-trough decline. If this is -30%, at some point you would have watched your portfolio drop 30% |
+        | **Volatility** | How much your returns bounce around. Higher volatility = bumpier ride |
+
+        #### Caveats
+
+        Backtesting has limitations:
+        - **Past performance doesn't guarantee future results** — markets change
+        - **Overfitting** — you can accidentally create a strategy that only works on historical data
+        - **Transaction costs** — this tool models slippage and commissions, but real-world costs vary
+        - **Survivorship bias** — we're testing on stocks that still exist today; failed companies aren't included
+
+        Despite these limitations, backtesting is an essential first step in evaluating any investment strategy.
+        """)
+
+    # ============================================================
+    # DEVELOPMENT STORY - How I Built This
+    # ============================================================
+    with st.expander("How I Built This"):
+        st.markdown("""
+        #### The Problem
+
+        Most quant finance tutorials teach you to `import backtrader` and call it a day.
+        You learn the API, but not the concepts. When something breaks, you're stuck.
+
+        I wanted to actually understand:
+        - How does a rebalancer convert target weights into actual trades?
+        - What happens when you try to buy before selling? (Hint: you run out of cash)
+        - How do small transaction costs compound into real money over time?
+
+        #### The Solution: Build It From Scratch
+
+        **Hindsight.py** is a from-scratch backtesting engine. No black-box libraries.
+        Every calculation is explicit and auditable.
+
+        **Key design decisions:**
+        - **Test-Driven Development**: 153 tests, all with hand-calculated expected values.
+          When my returns calculation was wrong by a factor of 100, the tests caught it in seconds.
+        - **Explicit time loop**: No vectorized shortcuts that hide execution order.
+          The backtest processes one day at a time, just like real trading.
+        - **Sells before buys**: When rebalancing, you need to free up cash before you can deploy it.
+          This sounds obvious, but many tutorials get it wrong.
+
+        #### Tech Stack
+
+        - **Python 3.11** — Type hints throughout
+        - **Polars** — 10x faster than Pandas, better type safety
+        - **Streamlit** — This dashboard you're using right now
+        - **pytest** — 153 tests ensuring correctness
+
+        #### What I Learned
+
+        1. **TDD catches math bugs instantly.** My first returns formula was `close/prev_close`
+           instead of `(close/prev_close) - 1`. A 10% gain showed as 1.10 instead of 0.10.
+           Tests failed immediately.
+
+        2. **Execution order matters.** You can't buy stock with money you haven't freed up yet.
+           Vectorized backtests hide this problem.
+
+        3. **Small costs compound.** A "tiny" 0.1% slippage on monthly rebalancing
+           reduces returns by 1-2% annually.
+
+        4. **Building from scratch builds understanding.** I can now explain every line of this engine.
+           That's the point.
+
+        ---
+
+        *Built by Gabe Meredith as a learning project. Not financial advice.*
+        """)
 
 # ============================================================
 # FOOTER - Always visible at bottom of main area

@@ -1,5 +1,5 @@
 """
-FactorLab Visualization Module
+Hindsight.py Visualization Module
 
 Provides matplotlib-based charts for backtest analysis:
 - Equity curves with benchmark comparison

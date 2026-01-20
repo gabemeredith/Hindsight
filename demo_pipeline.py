@@ -1,5 +1,5 @@
 """
-FactorLab - Complete Pipeline Demo
+Hindsight.py - Complete Pipeline Demo
 
 This script demonstrates the full quantitative backtesting pipeline:
 1. Ingest price data from Yahoo Finance
@@ -14,15 +14,15 @@ Run: python demo_pipeline.py
 from datetime import date
 import polars as pl
 
-from src.factorlabs.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
-from src.factorlabs.financialfeatures.factors import (
+from src.hindsightpy.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
+from src.hindsightpy.financialfeatures.factors import (
     calculate_returns,
     calculate_momentum,
     calculate_rsi,
     calculate_sma,
 )
-from src.factorlabs.backtest.backtester import Backtester, BacktestConfig
-from src.factorlabs.analytics.metrics import (
+from src.hindsightpy.backtest.backtester import Backtester, BacktestConfig
+from src.hindsightpy.analytics.metrics import (
     total_return,
     cagr,
     max_drawdown,
@@ -42,7 +42,7 @@ def print_section(title):
 def demo_full_pipeline():
     """Run complete pipeline from data ingestion to backtest results"""
 
-    print_section("FactorLab - Quantitative Backtesting Engine Demo")
+    print_section("Hindsight.py - Quantitative Backtesting Engine Demo")
 
     # =================================================================
     # STEP 1: Data Ingestion
@@ -233,7 +233,7 @@ def demo_full_pipeline():
     # =================================================================
     print_section(" Pipeline Complete!")
 
-    print("The FactorLab pipeline successfully:")
+    print("The Hindsight.py pipeline successfully:")
     print("  1.  Ingested price data from Yahoo Finance")
     print("  2.  Calculated technical factors (returns, momentum, RSI, SMA)")
     print("  3.  Defined portfolio strategy (static 49/30/20 allocation)")

@@ -11,8 +11,8 @@ Run with: pytest tests/test_rebalancer.py -v
 
 import pytest
 from datetime import date
-from factorlabs.backtest.portfolio import Portfolio
-from factorlabs.backtest.rebalancer import Rebalancer, Trade
+from hindsightpy.backtest.portfolio import Portfolio
+from hindsightpy.backtest.rebalancer import Rebalancer, Trade
 
 
 # ========================== FIXTURES ==========================

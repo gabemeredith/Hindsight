@@ -8,7 +8,7 @@ import pytest
 import polars as pl
 import math
 from datetime import date
-from factorlabs.analytics.metrics import (
+from hindsightpy.analytics.metrics import (
     total_return,
     cagr,
     sharpe_ratio,

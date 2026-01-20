@@ -13,7 +13,7 @@ sys.path.insert(0, 'src')
 
 import pytest
 from datetime import date
-from factorlabs.backtest.portfolio import Portfolio
+from hindsightpy.backtest.portfolio import Portfolio
 
 
 # ========================== UNREALIZED P&L TESTS ==========================

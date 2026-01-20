@@ -12,7 +12,7 @@ sys.path.insert(0, 'src')
 
 import pytest
 from datetime import date
-from factorlabs.backtest.portfolio import Portfolio
+from hindsightpy.backtest.portfolio import Portfolio
 
 
 def test_portfolio_starts_with_cash():

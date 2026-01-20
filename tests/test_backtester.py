@@ -13,7 +13,7 @@ Run with: pytest tests/test_backtester.py -v
 import pytest
 import polars as pl
 from datetime import date
-from factorlabs.backtest.backtester import Backtester, BacktestConfig, BacktestResult
+from hindsightpy.backtest.backtester import Backtester, BacktestConfig, BacktestResult
 
 
 # ========================== FIXTURES ==========================

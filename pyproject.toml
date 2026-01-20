@@ -1,10 +1,10 @@
 [tool.poetry]
-packages = [{include = "factorlabs", from = "src"}]
+packages = [{include = "hindsightpy", from = "src"}]
 
 [project]
-name = "factorlab"
+name = "hindsightpy"
 version = "0.1.0"
-description = "Backtesting Engine focused on reliability and speed. Education first"
+description = "A from-scratch backtesting engine for quantitative finance. Built with TDD."
 authors = [
     {name = "Gabe Meredith",email = "gabriel.b.meredith@gmail.com"}
 ]
@@ -27,7 +27,7 @@ dependencies = [
 
 
 [project.scripts]
-factorlab = "factorlabs.cli.main:main"
+hindsight = "hindsightpy.cli.main:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

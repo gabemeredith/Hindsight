@@ -9,7 +9,7 @@ import polars as pl
 import math
 from datetime import date
 
-from factorlabs.analytics.benchmark import (
+from hindsightpy.analytics.benchmark import (
     calculate_alpha,
     calculate_beta,
     calculate_correlation,

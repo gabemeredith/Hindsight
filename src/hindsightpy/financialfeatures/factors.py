@@ -1,6 +1,6 @@
 import polars as pl
-from factorlabs.data import io_utils
-## NOTE: YOU NEED TO BE IN SRC THEN DO python -m factorlabs.financialfeatures.factors
+from hindsightpy.data import io_utils
+## NOTE: YOU NEED TO BE IN SRC THEN DO python -m hindsightpy.financialfeatures.factors
 #WILL FIND A FIX LATER 
 cfg = pl.Config()
 cfg.set_tbl_rows(2000)

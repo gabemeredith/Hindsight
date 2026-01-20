@@ -10,7 +10,7 @@ import duckdb
 from .io_utils import write_prices
 # From the project root:
 # EXAMPLE RUN 
-# python -m factorlabs.data.ingest_yf NVDA 2020-01-01 2020-02-01
+# python -m hindsightpy.data.ingest_yf NVDA 2020-01-01 2020-02-01
 
 
 @dataclass
@@ -60,7 +60,7 @@ def fetch_yf_data(cfg: YFIngestConfig) -> pl.DataFrame:
 def normalize_prices(df: pl.DataFrame) -> pl.DataFrame:
     # standardize columns, dtypes, timezone, multiindex -> tidy, etc.
     """
-    Normalize a raw price DataFrame into the standard FactorLabs price schema.
+    Normalize a raw price DataFrame into the standard Hindsight.py price schema.
 
     This function takes the raw output returned by the data source (typically 
     yfinance) and performs the following transformations:
@@ -90,7 +90,7 @@ def normalize_prices(df: pl.DataFrame) -> pl.DataFrame:
     -------
     pl.DataFrame
         A clean, canonical, long-form price dataset suitable for all downstream 
-        FactorLabs pipeline stages (feature engineering, sleeves, backtesting).
+        Hindsight.py pipeline stages (feature engineering, sleeves, backtesting).
 
     Notes
     -----

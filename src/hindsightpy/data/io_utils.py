@@ -1,12 +1,12 @@
 
 
 """
-I/O Utilities for FactorLabs
-----------------------------
+I/O Utilities for Hindsight.py
+------------------------------
 
 Centralized utilities for reading/writing data, managing filesystem paths,
 interacting with DuckDB, and providing standardized access points for
-datasets used across the FactorLabs pipeline.
+datasets used across the Hindsight.py pipeline.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ import duckdb
 
 def get_project_root() -> Path:
    """
-    Return the root directory of the FactorLabs project.
+    Return the root directory of the Hindsight.py project.
 
     This is used to resolve all dataset paths relative to a stable directory.
     Typically this returns the parent folder containing the 'data/' directory.
@@ -162,8 +162,8 @@ def get_duckdb_con(path: str | Path | None = None) -> duckdb.DuckDBPyConnection:
     """
     Return a DuckDB connection.
 
-    If no path is given, uses the default FactorLabs DuckDB file under
-    data/external/factorlabs.duckdb (or similar project directory).
+    If no path is given, uses the default Hindsight.py DuckDB file under
+    data/external/hindsightpy.duckdb (or similar project directory).
 
     Returned connections should be closed by the caller unless used
     with a context-managed wrapper.

@@ -1,5 +1,5 @@
 """
-Tests for factorlabs/data/ingest_yf.py
+Tests for hindsightpy/data/ingest_yf.py
 
 Test Philosophy:
 - Test each transformation function in isolation
@@ -16,7 +16,7 @@ sys.path.insert(0, 'src')
 import polars as pl
 import pytest
 from datetime import date
-from factorlabs.data import ingest_yf
+from hindsightpy.data import ingest_yf
 
 
 # ========================== FIXTURES ==========================

@@ -23,7 +23,7 @@ matplotlib.use('Agg')  # Non-interactive backend for testing
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from factorlabs.visualization.charts import (
+from hindsightpy.visualization.charts import (
     plot_equity_curve,
     plot_drawdown,
     plot_returns_distribution,

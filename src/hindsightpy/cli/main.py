@@ -1,18 +1,18 @@
 """
-FactorLab CLI - Main entry point.
+Hindsight.py CLI - Main entry point.
 
 Usage:
     # Simple - one command does everything:
-    factorlab run AAPL MSFT GOOGL
+    hindsight run AAPL MSFT GOOGL
 
     # With options:
-    factorlab run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
+    hindsight run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
 
     # Advanced - individual commands:
-    factorlab ingest AAPL MSFT --start 2024-01-01 --end 2024-12-31
-    factorlab backtest data/prices.parquet --strategy static --weights "aapl:0.5,msft:0.5"
-    factorlab metrics results/equity_curve.parquet
-    factorlab plot equity results/equity_curve.parquet --output chart.png
+    hindsight ingest AAPL MSFT --start 2024-01-01 --end 2024-12-31
+    hindsight backtest data/prices.parquet --strategy static --weights "aapl:0.5,msft:0.5"
+    hindsight metrics results/equity_curve.parquet
+    hindsight plot equity results/equity_curve.parquet --output chart.png
 """
 import matplotlib.pyplot as plt
 import plotext as pltxt
@@ -22,17 +22,17 @@ from typing import Optional
 from typing_extensions import Annotated
 from datetime import date
 from pathlib import Path
-from factorlabs.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
-from factorlabs.backtest.backtester import BacktestConfig, Backtester
-from factorlabs.backtest.strategy import StaticWeightStrategy, MomentumStrategy
-from factorlabs.financialfeatures.factors import calculate_momentum, calculate_returns
-from factorlabs.visualization.charts import plot_equity_curve,plot_drawdown,plot_returns_distribution,plot_weights_over_time
-from factorlabs.analytics.metrics import total_return, sortino_ratio, annualized_volatility, cagr, max_drawdown, sharpe_ratio, calculate_drawdown_series
-from factorlabs.analytics.benchmark import compare_to_benchmark
+from hindsightpy.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
+from hindsightpy.backtest.backtester import BacktestConfig, Backtester
+from hindsightpy.backtest.strategy import StaticWeightStrategy, MomentumStrategy
+from hindsightpy.financialfeatures.factors import calculate_momentum, calculate_returns
+from hindsightpy.visualization.charts import plot_equity_curve,plot_drawdown,plot_returns_distribution,plot_weights_over_time
+from hindsightpy.analytics.metrics import total_return, sortino_ratio, annualized_volatility, cagr, max_drawdown, sharpe_ratio, calculate_drawdown_series
+from hindsightpy.analytics.benchmark import compare_to_benchmark
 # Create the main app
 app = typer.Typer(
-    name="factorlab",
-    help="FactorLab - A quantitative backtesting engine for equities.",
+    name="hindsight",
+    help="Hindsight.py - A quantitative backtesting engine for equities.",
     add_completion=False,
 )
 
@@ -48,7 +48,7 @@ def ingest(
     Download price data from Yahoo Finance.
 
     Example:
-        factorlab ingest AAPL MSFT GOOGL --start 2024-01-01 --end 2024-12-31
+        hindsight ingest AAPL MSFT GOOGL --start 2024-01-01 --end 2024-12-31
     """
     start_date = date.fromisoformat(start)
     end_date = date.fromisoformat(end)
@@ -83,8 +83,8 @@ def backtest(
     Run a backtest simulation.
 
     Example:
-        factorlab backtest data/prices.parquet --strategy static --weights "AAPL:0.4,MSFT:0.3,GOOGL:0.3"
-        factorlab backtest data/prices.parquet --strategy momentum --rebalance monthly
+        hindsight backtest data/prices.parquet --strategy static --weights "AAPL:0.4,MSFT:0.3,GOOGL:0.3"
+        hindsight backtest data/prices.parquet --strategy momentum --rebalance monthly
     """
 
     typer.echo(f"Loading prices from: {prices_file}")
@@ -134,8 +134,8 @@ def plot(
     Generate visualizations from backtest results.
 
     Example:
-        factorlab plot equity results/equity_curve.parquet --output charts/equity.png
-        factorlab plot drawdown results/equity_curve.parquet
+        hindsight plot equity results/equity_curve.parquet --output charts/equity.png
+        hindsight plot drawdown results/equity_curve.parquet
     """
     typer.echo(f"Generating {chart_type} chart from: {data_file}")
     # 1. Load data from parquet
@@ -179,7 +179,7 @@ def metrics(
     Calculate and display performance metrics.
 
     Example:
-        factorlab metrics results/equity_curve.parquet --rf 0.05
+        hindsight metrics results/equity_curve.parquet --rf 0.05
     """
     equity_curve = pl.read_parquet(equity_file)                                                                            
                                                                                                                             
@@ -225,14 +225,14 @@ def run(
     Downloads data, runs backtest, shows metrics and charts.
 
     Example:
-        factorlab run AAPL MSFT GOOGL
-        factorlab run AAPL MSFT --strategy momentum --n-positions 2
-        factorlab run AAPL MSFT --weights "AAPL:0.6,MSFT:0.4"
-        factorlab run AAPL MSFT GOOGL --benchmark SPY
-        factorlab run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
+        hindsight run AAPL MSFT GOOGL
+        hindsight run AAPL MSFT --strategy momentum --n-positions 2
+        hindsight run AAPL MSFT --weights "AAPL:0.6,MSFT:0.4"
+        hindsight run AAPL MSFT GOOGL --benchmark SPY
+        hindsight run AAPL MSFT --start 2024-01-01 --end 2024-06-01 --cash 50000
     """
     typer.echo("\n" + "=" * 50)
-    typer.echo("  FactorLab - Running Complete Backtest Pipeline")
+    typer.echo("  Hindsight.py - Running Complete Backtest Pipeline")
     typer.echo("=" * 50)
 
     # Step 1: Ingest data

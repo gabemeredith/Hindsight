@@ -13,8 +13,8 @@ Run with: pytest tests/test_strategy.py -v
 import pytest
 from datetime import date
 import polars as pl
-from factorlabs.backtest.portfolio import Portfolio
-from factorlabs.backtest.strategy import (
+from hindsightpy.backtest.portfolio import Portfolio
+from hindsightpy.backtest.strategy import (
     Strategy,
     StaticWeightStrategy,
     MomentumStrategy,

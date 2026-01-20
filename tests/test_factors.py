@@ -1,5 +1,5 @@
 """
-Tests for factorlabs/financialfeatures/factors.py
+Tests for hindsightpy/financialfeatures/factors.py
 
 Test Philosophy:
 - Use small, deterministic DataFrames (3-5 rows)
@@ -12,7 +12,7 @@ Run with: pytest tests/test_factors.py -v
 
 import polars as pl
 import pytest
-from factorlabs.financialfeatures import factors
+from hindsightpy.financialfeatures import factors
 
 
 # ========================== FIXTURES ==========================
