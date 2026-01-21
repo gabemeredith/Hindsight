@@ -49,17 +49,70 @@ if "last_config" not in st.session_state:
 # ============================================================
 st.markdown("""
 <style>
-    /* Metric cards styling - equal size boxes */
+    /* Keyframe animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+    }
+
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+
+    @keyframes gradientFlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Metric cards styling - equal size boxes with animations */
     div[data-testid="stMetric"] {
-        background-color: #262730;
+        background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
         border: 1px solid #3d3d4d;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 16px;
         height: 110px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         overflow: hidden;
+        animation: fadeInUp 0.5s ease-out forwards;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-4px);
+        border-color: #ff4b4b;
+        box-shadow: 0 12px 20px -5px rgba(255, 75, 75, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
     }
 
     div[data-testid="stMetric"] > div {
@@ -67,41 +120,242 @@ st.markdown("""
     }
 
     div[data-testid="stMetric"] label {
-        font-size: 14px;
-        color: #a0a0a0;
+        font-size: 13px;
+        color: #8b8b9a;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
     }
 
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        font-size: 24px;
-        font-weight: 600;
+        font-size: 26px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
     /* Make delta text smaller to fit in fixed height */
     div[data-testid="stMetricDelta"] {
         font-size: 12px;
+        font-weight: 500;
     }
 
-    /* Tab styling */
+    /* Tab styling with animations */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: transparent;
+        gap: 4px;
+        background-color: #1a1a24;
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid #3d3d4d;
     }
 
     .stTabs [data-baseweb="tab"] {
-        padding: 10px 20px;
-        border-radius: 4px 4px 0 0;
-    }
-
-    /* Button improvements */
-    .stButton > button[kind="primary"] {
-        width: 100%;
         padding: 12px 24px;
-        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        color: #a0a0a0 !important;
     }
 
-    /* Success/info boxes */
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: rgba(255, 75, 75, 0.1);
+        color: #ffffff !important;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%) !important;
+        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.3);
+        color: #ffffff !important;
+    }
+
+    .stTabs [aria-selected="true"] p,
+    .stTabs [aria-selected="true"] span {
+        color: #ffffff !important;
+    }
+
+    /* Button improvements with animations */
+    .stButton > button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 10px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+        border: none;
+        box-shadow: 0 4px 14px rgba(255, 75, 75, 0.4);
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 75, 75, 0.5);
+    }
+
+    .stButton > button[kind="primary"]:active {
+        transform: translateY(0);
+    }
+
+    .stButton > button[kind="secondary"] {
+        border: 1px solid #3d3d4d;
+        background: transparent;
+    }
+
+    .stButton > button[kind="secondary"]:hover {
+        border-color: #ff4b4b;
+        background: rgba(255, 75, 75, 0.1);
+    }
+
+    /* Success/info boxes with animations */
     .stAlert {
+        border-radius: 12px;
+        animation: fadeInUp 0.4s ease-out;
+        border: none;
+    }
+
+    div[data-testid="stAlert"] {
+        border-left: 4px solid;
+    }
+
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
+        border-radius: 12px;
+        border: 1px solid #3d3d4d;
+        transition: all 0.3s ease;
+    }
+
+    .streamlit-expanderHeader:hover {
+        border-color: #ff4b4b;
+    }
+
+    /* Dataframe styling */
+    .stDataFrame {
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Download button styling */
+    .stDownloadButton > button {
+        background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
+        border: 1px solid #3d3d4d;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .stDownloadButton > button:hover {
+        border-color: #ff4b4b;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.2);
+    }
+
+    /* Selectbox and input styling */
+    .stSelectbox > div > div,
+    .stMultiSelect > div > div,
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input {
         border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .stSelectbox > div > div:hover,
+    .stMultiSelect > div > div:hover {
+        border-color: #ff4b4b;
+    }
+
+    /* Progress bar styling */
+    .stProgress > div > div > div {
+        background: linear-gradient(90deg, #ff4b4b 0%, #ff6b6b 50%, #ff4b4b 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+        border-radius: 10px;
+    }
+
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0e1117 0%, #151821 100%);
+    }
+
+    section[data-testid="stSidebar"] .stMarkdown h1 {
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff8585 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Radio button styling */
+    .stRadio > div {
+        gap: 8px;
+    }
+
+    .stRadio > div > label {
+        background: #1a1a24;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid #3d3d4d;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .stRadio > div > label:hover {
+        border-color: #ff4b4b;
+        background: rgba(255, 75, 75, 0.1);
+    }
+
+    .stRadio > div > label[data-checked="true"] {
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+        border-color: transparent;
+    }
+
+    /* Slider styling */
+    .stSlider > div > div > div {
+        background: #3d3d4d;
+    }
+
+    .stSlider > div > div > div > div {
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+    }
+
+    /* Main content fade in */
+    .main .block-container {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    /* Plotly chart container */
+    .stPlotlyChart {
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    /* Info box special styling */
+    div[data-testid="stAlert"][data-baseweb="notification"] {
+        background: linear-gradient(145deg, #1e3a5f 0%, #0e1117 100%);
+    }
+
+    /* Divider styling */
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, #3d3d4d 50%, transparent 100%);
+        margin: 24px 0;
+    }
+
+    /* Caption styling */
+    .stCaption {
+        color: #6b6b7a;
+    }
+
+    /* Link styling */
+    a {
+        transition: all 0.2s ease;
+    }
+
+    a:hover {
+        color: #ff6b6b !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -504,9 +758,26 @@ with st.sidebar:
 # MAIN AREA
 # ============================================================
 
-# Header
-st.title("Hindsight.py")
-st.caption("A from-scratch portfolio backtesting engine")
+# Animated header
+st.markdown("""
+<div style="margin-bottom: 24px;">
+    <h1 style="
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ff4b4b 0%, #ff8585 50%, #ffffff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+        animation: fadeInUp 0.6s ease-out;
+    ">Hindsight.py</h1>
+    <p style="
+        color: #8b8b9a;
+        font-size: 1.1rem;
+        animation: fadeIn 0.8s ease-out;
+    ">A from-scratch portfolio backtesting engine</p>
+</div>
+""", unsafe_allow_html=True)
 
 # ============================================================
 # RUN BACKTEST
@@ -632,7 +903,25 @@ if run_backtest:
             progress_bar.empty()
             status_text.empty()
 
-            st.success(f"Backtest complete! Analyzed {len(result.trades):,} trades across {len(tickers)} tickers.")
+            # Success message with animation
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(145deg, #1a3d2e 0%, #0e1117 100%);
+                border: 1px solid #2d5a47;
+                border-left: 4px solid #4ade80;
+                border-radius: 12px;
+                padding: 16px 20px;
+                margin-bottom: 16px;
+                animation: fadeInUp 0.4s ease-out;
+            ">
+                <p style="color: #4ade80; font-weight: 600; margin: 0; font-size: 15px;">
+                    Backtest Complete
+                </p>
+                <p style="color: #86efac; margin: 4px 0 0 0; font-size: 14px;">
+                    Analyzed {len(result.trades):,} trades across {len(tickers)} ticker(s)
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
         except Exception as e:
             progress_bar.empty()
@@ -874,37 +1163,144 @@ else:
     # WELCOME STATE - No results yet
     # ============================================================
 
-    # Info box
-    st.info("Configure your backtest in the sidebar and click **Run Backtest** to get started.")
+    # Hero section with call to action
+    st.markdown("""
+    <div style="
+        background: linear-gradient(145deg, #1a1a24 0%, #262730 100%);
+        border: 1px solid #3d3d4d;
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        text-align: center;
+        animation: fadeInUp 0.5s ease-out;
+    ">
+        <p style="font-size: 1.2rem; color: #a0a0a0; margin-bottom: 16px;">
+            Test your investment strategies with historical data
+        </p>
+        <p style="color: #6b6b7a; font-size: 0.95rem;">
+            Configure your backtest in the sidebar and click <strong style="color: #ff4b4b;">Run Backtest</strong> to get started
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Feature cards with minimal design
+    st.markdown("""
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+        <div style="
+            background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
+            border: 1px solid #3d3d4d;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out 0.1s both;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+                border-radius: 10px;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                color: white;
+                font-size: 18px;
+            ">01</div>
+            <h4 style="color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Multiple Strategies</h4>
+            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5;">Equal weight or momentum-based portfolio allocation</p>
+        </div>
+        <div style="
+            background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
+            border: 1px solid #3d3d4d;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out 0.2s both;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+                border-radius: 10px;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                color: white;
+                font-size: 18px;
+            ">02</div>
+            <h4 style="color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Rich Analytics</h4>
+            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5;">Sharpe ratio, drawdown, alpha, beta & more</p>
+        </div>
+        <div style="
+            background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
+            border: 1px solid #3d3d4d;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out 0.3s both;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, #ff4b4b 0%, #ff6b6b 100%);
+                border-radius: 10px;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                color: white;
+                font-size: 18px;
+            ">03</div>
+            <h4 style="color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Benchmark Comparison</h4>
+            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5;">Compare against SPY, QQQ, and other indices</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Quick start guide
     with st.expander("Quick Start Guide", expanded=True):
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2, gap="large")
 
         with col1:
             st.markdown("""
             ### Getting Started
 
-            1. **Select Tickers** - Choose stocks from the dropdown or add custom tickers
-            2. **Set Time Period** - Use presets (YTD, 1Y, etc.) or custom dates
-            3. **Choose Strategy** - Equal weight or momentum-based
-            4. **Add Benchmark** - Compare against SPY, QQQ, etc.
-            5. **Run Backtest** - Click the button and wait for results
-            """)
+            <div style="color: #a0a0a0;">
+
+            **1.** Select tickers from the dropdown or add custom ones
+
+            **2.** Choose a time period using presets or custom dates
+
+            **3.** Pick a strategy (Equal Weight or Momentum)
+
+            **4.** Optionally add a benchmark for comparison
+
+            **5.** Click **Run Backtest** and explore results
+
+            </div>
+            """, unsafe_allow_html=True)
 
         with col2:
             st.markdown("""
-            ### Strategies Explained
+            ### Strategies
+
+            <div style="color: #a0a0a0;">
 
             **Static (Equal Weight)**
-            - Divides capital equally among all selected tickers
-            - Rebalances monthly to maintain equal weights
+            Divides capital equally among all selected tickers and rebalances monthly.
 
             **Momentum**
-            - Ranks stocks by recent performance
-            - Holds only the top N performers
-            - Rotates holdings monthly based on momentum
-            """)
+            Ranks stocks by recent performance and rotates into top performers monthly.
+
+            </div>
+            """, unsafe_allow_html=True)
 
     # Educational content
     with st.expander("What is Backtesting?"):
@@ -967,15 +1363,48 @@ else:
 # ============================================================
 # FOOTER
 # ============================================================
-st.markdown("---")
-st.markdown(
-    """
-    <div style="text-align: center; color: #a0a0a0; padding: 20px; font-size: 14px;">
-        Built with Streamlit by <b>Gabe Meredith</b><br>
-        <a href="https://gabemeredith.github.io" target="_blank" style="color: #ff4b4b;">Website</a> ·
-        <a href="https://github.com/gabemeredith" target="_blank" style="color: #ff4b4b;">GitHub</a> ·
-        <a href="https://www.linkedin.com/in/gabriel-meredith" target="_blank" style="color: #ff4b4b;">LinkedIn</a>
+st.markdown("""
+<div style="
+    margin-top: 48px;
+    padding: 32px;
+    text-align: center;
+    border-top: 1px solid #3d3d4d;
+    animation: fadeIn 0.6s ease-out;
+">
+    <p style="
+        color: #6b6b7a;
+        font-size: 13px;
+        margin-bottom: 16px;
+        letter-spacing: 0.5px;
+    ">
+        Built from scratch with Python, Polars & Streamlit
+    </p>
+    <p style="
+        color: #8b8b9a;
+        font-size: 14px;
+        margin-bottom: 12px;
+    ">
+        Created by <strong style="color: #ffffff;">Gabe Meredith</strong>
+    </p>
+    <div style="display: flex; justify-content: center; gap: 24px;">
+        <a href="https://gabemeredith.github.io" target="_blank" style="
+            color: #8b8b9a;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        " onmouseover="this.style.color='#ff4b4b'" onmouseout="this.style.color='#8b8b9a'">Website</a>
+        <a href="https://github.com/gabemeredith" target="_blank" style="
+            color: #8b8b9a;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        " onmouseover="this.style.color='#ff4b4b'" onmouseout="this.style.color='#8b8b9a'">GitHub</a>
+        <a href="https://www.linkedin.com/in/gabriel-meredith" target="_blank" style="
+            color: #8b8b9a;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        " onmouseover="this.style.color='#ff4b4b'" onmouseout="this.style.color='#8b8b9a'">LinkedIn</a>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+</div>
+""", unsafe_allow_html=True)
