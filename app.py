@@ -27,8 +27,8 @@ st.set_page_config(
 # ============================================================
 from hindsightpy.data.ingest_yf import fetch_yf_data, YFIngestConfig, normalize_prices
 from hindsightpy.backtest.backtester import BacktestConfig, Backtester
-from hindsightpy.backtest.strategy import StaticWeightStrategy, MomentumStrategy
-from hindsightpy.financialfeatures.factors import calculate_momentum, calculate_returns
+from hindsightpy.backtest.strategy import StaticWeightStrategy, MomentumStrategy, MeanReversionStrategy, LowVolatilityStrategy
+from hindsightpy.financialfeatures.factors import calculate_momentum, calculate_returns, calculate_volitility
 from hindsightpy.analytics.metrics import (
     total_return, cagr, max_drawdown, sharpe_ratio,
     sortino_ratio, annualized_volatility
@@ -689,19 +689,20 @@ with st.sidebar:
 
     strategy_type = st.selectbox(
         "Type",
-        options=["Static (Equal Weight)", "Momentum"],
-        help="Static: Fixed equal weights, rebalanced monthly. Momentum: Rotate into top performers.",
+        options=["Static (Equal Weight)", "Momentum", "Mean Reversion", "Low Volatility"],
+        help="Static: Fixed weights. Momentum: Top performers. Mean Reversion: Buy losers. Low Vol: Weight by stability.",
         label_visibility="collapsed"
     )
 
-    if strategy_type == "Momentum":
+    # Show position slider for strategies that need it
+    if strategy_type in ["Momentum", "Mean Reversion"]:
         max_positions = max(2, min(10, len(tickers)))
         n_positions = st.slider(
             "Number of Positions",
             min_value=1,
             max_value=max_positions,
             value=min(3, max_positions),
-            help="How many top-momentum stocks to hold at any time"
+            help="How many stocks to hold at any time"
         )
     else:
         n_positions = len(tickers) if tickers else 1
@@ -833,7 +834,15 @@ if run_backtest:
                 factors = calculate_returns(prices)
                 factors = calculate_momentum(factors)
                 bt_strategy = MomentumStrategy(n_positions=n_positions)
-            else:
+            elif strategy_type == "Mean Reversion":
+                factors = calculate_returns(prices)
+                factors = calculate_momentum(factors)
+                bt_strategy = MeanReversionStrategy(n_positions=n_positions)
+            elif strategy_type == "Low Volatility":
+                factors = calculate_returns(prices)
+                factors = calculate_volitility(factors)
+                bt_strategy = LowVolatilityStrategy()
+            else:  # Static (Equal Weight)
                 weight_per_ticker = 0.97 / len(tickers)
                 weight_dict = {t.lower(): weight_per_ticker for t in tickers}
                 bt_strategy = StaticWeightStrategy(weight_dict)
@@ -1208,8 +1217,8 @@ else:
                 color: white;
                 font-size: 18px;
             ">01</div>
-            <h4 style="color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Multiple Strategies</h4>
-            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5;">Equal weight or momentum-based portfolio allocation</p>
+            <h4 style="color: #ffffff; margin-bottom: 8px; font-size: 1rem;">4 Strategies</h4>
+            <p style="color: #8b8b9a; font-size: 0.85rem; line-height: 1.5;">Equal weight, momentum, mean reversion, low volatility</p>
         </div>
         <div style="
             background: linear-gradient(145deg, #262730 0%, #1a1a24 100%);
@@ -1266,41 +1275,57 @@ else:
 
     # Quick start guide
     with st.expander("Quick Start Guide", expanded=True):
-        col1, col2 = st.columns(2, gap="large")
+        st.markdown("""
+        <div style="color: #a0a0a0; line-height: 1.8;">
+            <strong style="color: #fff;">1.</strong> Select tickers from the dropdown or add custom ones<br>
+            <strong style="color: #fff;">2.</strong> Choose a time period using presets or custom dates<br>
+            <strong style="color: #fff;">3.</strong> Pick a strategy<br>
+            <strong style="color: #fff;">4.</strong> Optionally add a benchmark for comparison<br>
+            <strong style="color: #fff;">5.</strong> Click <strong style="color: #ff4b4b;">Run Backtest</strong> and explore results
+        </div>
+        """, unsafe_allow_html=True)
 
-        with col1:
-            st.markdown("""
-            ### Getting Started
+    # Strategy explanations
+    with st.expander("Strategy Explanations"):
+        st.markdown("""
+        #### Static (Equal Weight)
 
-            <div style="color: #a0a0a0;">
+        Split your money equally across all selected stocks.
 
-            **1.** Select tickers from the dropdown or add custom ones
+        - The "I don't know which one will win, so I'll buy them all equally" approach.
+        - Good baseline — if a fancier strategy can't beat this, it's not worth the complexity.
+        - Rebalances monthly to keep weights equal as prices change.
 
-            **2.** Choose a time period using presets or custom dates
+        ---
 
-            **3.** Pick a strategy (Equal Weight or Momentum)
+        #### Momentum
 
-            **4.** Optionally add a benchmark for comparison
+        Buy winners, sell losers. Stocks going up tend to keep going up.
 
-            **5.** Click **Run Backtest** and explore results
+        - Like betting on the horse that's already in the lead.
+        - Works great when markets are trending; struggles during sudden reversals.
+        - One of the most researched strategies — it's worked for decades across different markets.
 
-            </div>
-            """, unsafe_allow_html=True)
+        ---
 
-        with col2:
-            st.markdown("""
-            ### Strategies
+        #### Mean Reversion
 
-            <div style="color: #a0a0a0;">
+        Buy losers, expecting a bounce back. What goes down must come up.
 
-            **Static (Equal Weight)**
-            Divides capital equally among all selected tickers and rebalances monthly.
+        - The "buy low" strategy — stocks that dropped might be oversold.
+        - Riskier than momentum — you're betting the crowd is wrong.
+        - Works when markets overreact; fails when a stock is falling for good reason.
 
-            **Momentum**
-            Ranks stocks by recent performance and rotates into top performers monthly.
+        ---
 
-            </div>
-            """, unsafe_allow_html=True)
+        #### Low Volatility
+
+        Bet on boring. Calm, steady stocks often beat exciting, volatile ones.
+
+        - Less drama, potentially better returns — counterintuitive but historically true.
+        - Holds up better during market crashes; may lag during strong rallies.
+        - Gives more weight to stable stocks, less to wild ones.
+        """)
 
     # Educational content
     with st.expander("What is Backtesting?"):

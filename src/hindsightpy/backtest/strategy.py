@@ -188,5 +188,133 @@ class MomentumStrategy(Strategy):
         weights = {}
         for row in tickers.iter_rows(named=True):
             weights[row["ticker"]] = weight
-        
+
+        return weights
+
+
+class MeanReversionStrategy(Strategy):
+    """
+    Mean reversion strategy: buy bottom N stocks by recent performance.
+
+    Assumes stocks that have fallen will revert to the mean.
+    Ranks all stocks by their momentum (ascending) and equal-weights
+    the worst N performers, betting on a bounce back.
+
+    Parameters
+    ----------
+    n_positions : int
+        Number of worst-performing stocks to hold (default: 3)
+    momentum_col : str
+        Name of momentum column in factors DataFrame (default: "mom_10d")
+
+    Examples
+    --------
+    >>> strategy = MeanReversionStrategy(n_positions=2)
+    >>> # If AAPL has lowest momentum, MSFT second lowest:
+    >>> strategy.get_target_weights(...)
+    {"AAPL": 0.5, "MSFT": 0.5}  # Equal weight bottom 2
+    """
+
+    def __init__(self, n_positions: int = 3, momentum_col: str = "mom_10d", max_allocation: float = 0.97):
+        self.n_positions = n_positions
+        self.momentum_col = momentum_col
+        self.max_allocation = max_allocation
+
+    def get_target_weights(
+        self,
+        current_date: date,
+        portfolio: Portfolio,
+        prices: dict[str, float],
+        factors: pl.DataFrame | None = None,
+    ) -> dict[str, float]:
+        """
+        Select bottom N stocks by momentum (worst performers), equal-weight them.
+        """
+        if factors is None:
+            return {}
+
+        todays_factors = factors.filter(pl.col("date") == current_date)
+        if len(todays_factors) == 0:
+            return {}
+
+        # Sort ascending to get worst performers first
+        n_to_select = min(self.n_positions, len(todays_factors))
+        tickers = todays_factors.sort(
+            by=self.momentum_col, descending=False
+        ).head(n_to_select)
+
+        weight = self.max_allocation / n_to_select
+        weights = {}
+        for row in tickers.iter_rows(named=True):
+            weights[row["ticker"]] = weight
+
+        return weights
+
+
+class LowVolatilityStrategy(Strategy):
+    """
+    Low volatility strategy: weight stocks inversely by their volatility.
+
+    Less volatile stocks receive higher weights, more volatile stocks
+    receive lower weights. This is a simple risk-parity approach.
+
+    Parameters
+    ----------
+    volatility_col : str
+        Name of volatility column in factors DataFrame (default: "vol_10d")
+
+    Examples
+    --------
+    >>> strategy = LowVolatilityStrategy()
+    >>> # If AAPL vol=0.02, MSFT vol=0.04:
+    >>> # Inverse weights: AAPL=50, MSFT=25, sum=75
+    >>> # Normalized: AAPL=50/75=0.67, MSFT=25/75=0.33
+    >>> strategy.get_target_weights(...)
+    {"AAPL": 0.65, "MSFT": 0.32}  # (scaled to 97%)
+    """
+
+    def __init__(self, volatility_col: str = "vol_10d", max_allocation: float = 0.97):
+        self.volatility_col = volatility_col
+        self.max_allocation = max_allocation
+
+    def get_target_weights(
+        self,
+        current_date: date,
+        portfolio: Portfolio,
+        prices: dict[str, float],
+        factors: pl.DataFrame | None = None,
+    ) -> dict[str, float]:
+        """
+        Weight stocks inversely by volatility.
+        """
+        if factors is None:
+            return {}
+
+        todays_factors = factors.filter(pl.col("date") == current_date)
+        if len(todays_factors) == 0:
+            return {}
+
+        # Filter out rows with null or zero volatility
+        todays_factors = todays_factors.filter(
+            (pl.col(self.volatility_col).is_not_null()) &
+            (pl.col(self.volatility_col) > 0)
+        )
+
+        if len(todays_factors) == 0:
+            return {}
+
+        # Calculate inverse volatility weights
+        inverse_vols = []
+        tickers_list = []
+        for row in todays_factors.iter_rows(named=True):
+            vol = row[self.volatility_col]
+            inverse_vols.append(1.0 / vol)
+            tickers_list.append(row["ticker"])
+
+        # Normalize to sum to max_allocation
+        total_inverse_vol = sum(inverse_vols)
+        weights = {}
+        for ticker, inv_vol in zip(tickers_list, inverse_vols):
+            weights[ticker] = (inv_vol / total_inverse_vol) * self.max_allocation
+
         return weights
